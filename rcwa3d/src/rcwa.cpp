@@ -81,10 +81,10 @@ Matrix ConvMat(const std::vector<Real>& field, int layer, int Nx, int Ny, int Nx
 }
 
 
-void ComputeWaveVectors(const Device& device, const Source& source, const RCWAParams& params, std::vector<Real>& k_inc, Vector& Kx, Vector& Ky, Vector& Kz_ref, Vector& Kz_trn)
+void ComputeWaveVectors(const Device& device, const Source& source, const RCWAParams& params, std::vector<Complex>& k_inc, Vector& Kx, Vector& Ky, Vector& Kz_ref, Vector& Kz_trn)
 {
     /*
-    Function that computes the Wave Vector Expansion. NOTE: WE ARE WORKING WITH RealS, IN THE END CAST TO COMPLEX RealS
+    Function that computes the Wave Vector Expansion.
     */
     // incidence vector
     Real n_inc = std::sqrt(params.er_ref * params.ur_ref); // refractive index, FOR NOW ONLY DIELETRIC MATERIALS (n_inc is NOT COMPLEX)
@@ -92,14 +92,16 @@ void ComputeWaveVectors(const Device& device, const Source& source, const RCWAPa
     Real cos_theta = std::cos(source.theta);
     Real sin_phi = std::sin(source.phi);
     Real cos_phi = std::cos(source.phi);
-    k_inc[0] = n_inc * sin_theta * cos_phi;
-    k_inc[1] = n_inc * sin_theta * sin_phi;
+    Real delta = 1e-10; // infinitesimal angle shift
+    
+    k_inc[0] = n_inc * sin_theta * cos_phi + delta; // infinitesimal angle shift for handling degenerate cases
+    k_inc[1] = n_inc * sin_theta * sin_phi + delta; // infinitesimal angle shift
     k_inc[2] = n_inc * cos_theta;
 
     // Wave vector components
-    Eigen::VectorXd k_x_tilde = Eigen::VectorXd::LinSpaced(2*params.Nx_harmonics + 1, -params.Nx_harmonics, params.Nx_harmonics);
+    Vector k_x_tilde = Vector::LinSpaced(2*params.Nx_harmonics + 1, -params.Nx_harmonics, params.Nx_harmonics);
     //std::cout << k_x_tilde << '\n';
-    Eigen::VectorXd k_y_tilde = Eigen::VectorXd::LinSpaced(2*params.Ny_harmonics + 1, -params.Ny_harmonics, params.Ny_harmonics);
+    Vector k_y_tilde = Vector::LinSpaced(2*params.Ny_harmonics + 1, -params.Ny_harmonics, params.Ny_harmonics);
     //std::cout << '\n';
     //std::cout << k_y_tilde << '\n';
     k_x_tilde *= -(source.lambda0 / device.Lx);
@@ -108,16 +110,18 @@ void ComputeWaveVectors(const Device& device, const Source& source, const RCWAPa
     k_y_tilde *= -(source.lambda0 / device.Ly);
     //k_y_tilde *= -(2 * M_PI / (source.k0 * device.Ly));
     k_y_tilde.array() += k_inc[1];
-    Eigen::MatrixXd Kx_tilde = Eigen::MatrixXd::Zero(k_y_tilde.size(), k_x_tilde.size());
-    Eigen::MatrixXd Ky_tilde = Eigen::MatrixXd::Zero(k_y_tilde.size(), k_x_tilde.size());
+    Matrix Kx_tilde = Matrix::Zero(k_y_tilde.size(), k_x_tilde.size());
+    Matrix Ky_tilde = Matrix::Zero(k_y_tilde.size(), k_x_tilde.size());
     MeshGrid(k_x_tilde, k_y_tilde, Kx_tilde, Ky_tilde);
     //std::cout << Kx_tilde << '\n';
     //std::cout << '\n';
     //std::cout << Ky_tilde << '\n';
     // Longitudinal vector components in the reflection and transmission region
     // NOTE: REWRITE IN CASE OF NON DIELETRIC MATERIALS
-    Matrix k_z_ref = -(params.ur_ref*params.er_ref - Kx_tilde.array().square() - Ky_tilde.array().square()).cast<Complex>().sqrt();
-    Matrix k_z_trn = (params.ur_trn*params.er_trn - Kx_tilde.array().square() - Ky_tilde.array().square()).cast<Complex>().sqrt();
+    Matrix k_z_trn = (params.ur_trn*params.er_trn - Kx_tilde.array().square() - Ky_tilde.array().square()).sqrt().conjugate();
+    Matrix k_z_ref = -k_z_trn;
+    std::cout << Kx_tilde.rows() << " " << Kx_tilde.cols() << '\n';
+    std::cout << k_z_ref.rows() << " " << k_z_ref.cols() << '\n';
 
     Kx = Kx_tilde.reshaped();
     Ky = Ky_tilde.reshaped();
@@ -125,8 +129,8 @@ void ComputeWaveVectors(const Device& device, const Source& source, const RCWAPa
     Kz_trn = k_z_trn.reshaped();
     //std::cout << k_z_ref << '\n';
     //std::cout << k_z_ref.rows() << " " << k_z_ref.cols() << '\n';
-    //std::cout << Kz_ref << '\n';
-    //std::cout << '\n';
+    std::cout << Kz_ref << '\n';
+    std::cout << '\n';
 
     // NOTE: REMEMBER TO USE THE MATRICES/VECTORS Kx, Ky, Kz_ref AND Kz_trn WITH THE CALL .asDiagonal()
 }
@@ -138,15 +142,19 @@ void GapMedium(const Vector& Kx, const Vector& Ky, Matrix& W0, Matrix& V0)
     Compute Eigenmodes of the Gap medium. To be revised!!! ==================================
     */
     Vector Kz = (1.0 - Kx.array().square() - Ky.array().square()).sqrt().conjugate();
+    std::cout << "Kz" << '\n';
+    std::cout << '\n';
+    std::cout << Kz << '\n';
+
     int block_size = Kz.size();
 
     Vector Kx_Ky = Kx.array() * Ky.array();
     //Vector main_diag(Kx_Ky.size()*2);
     //main_diag << Kx_Ky, -Kx_Ky;
     Matrix top_left_Mat = Kx_Ky.asDiagonal();
-    std::cout << top_left_Mat << '\n';
-    std::cout << '\n';
-    std::cout << top_left_Mat.rows() << " " << top_left_Mat.cols() << '\n';
+    //std::cout << top_left_Mat << '\n';
+    //std::cout << '\n';
+    //std::cout << top_left_Mat.rows() << " " << top_left_Mat.cols() << '\n';
     Vector top_right = 1.0 - Kx.array().square();
     Matrix top_right_Mat = top_right.asDiagonal();
     Vector bottom_left = Ky.array().square() - 1.0;
@@ -166,6 +174,7 @@ void GapMedium(const Vector& Kx, const Vector& Ky, Matrix& W0, Matrix& V0)
 
     Vector lambda(2*block_size);
     lambda << 1i*Kz, 1i*Kz;
+    std::cout << '\n';
     std::cout << lambda << '\n';
     // Possible instability for lambda
     Matrix Test = Q * lambda.array().inverse().matrix().asDiagonal(); // check if .matrix is really needed
@@ -176,6 +185,7 @@ void GapMedium(const Vector& Kx, const Vector& Ky, Matrix& W0, Matrix& V0)
     {
         V0.col(j) = Q.col(j) / lambda(j); // are we potentially dividing for 0? Yeah....
     }
+    std::cout << V0 << '\n';
     if (V0.isApprox(Test))
         std::cout << "Similar" << '\n';
     //std::cout << V0 << '\n';
