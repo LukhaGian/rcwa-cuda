@@ -3,8 +3,8 @@
 
 int main()
 {
-    int Nx = 10;
-    int Ny = 10;
+    int Nx = 16;
+    int Ny = 16;
 
     int Nx_harmonics = 1;
     int Ny_harmonics = 2;
@@ -29,17 +29,18 @@ int main()
     Matrix W0, V0(2*(2*Nx_harmonics+1)*(2*Ny_harmonics +1), 2*(2*Nx_harmonics+1)*(2*Ny_harmonics +1));
     GapMedium(Kx, Ky, W0, V0);
 
-    Real er_val = 4.0;
-    std::vector<Real> field(Nx * Ny, er_val); // uniform field of size Nx * Ny
+    Complex er_val(4.0, 0.0);
+    std::vector<Complex> field(Nx * Ny, er_val); // uniform field of size Nx * Ny
 
     Matrix C = ConvMat(field, 0, Nx, Ny, Nx_harmonics, Ny_harmonics);
-    //std::cout << C << '\n';
+    std::cout << C << '\n';
     //MatrixXcd C = MatrixXcd::Zero(Nx, Ny);
-    //std::cout << "Size of C: " << C.rows() << " x " << C.cols() << std::endl;
+    std::cout << "Size of C: " << C.rows() << " x " << C.cols() << std::endl;
     ScatteringMatrix A(C, C, C, C);
     ScatteringMatrix B(C, C, C, C);
     ScatteringMatrix res = RedhefferProduct(A, B);
 
+    /*
     std::complex<double> a(-1.0, 0.0);
     Eigen::MatrixXcd mat(2, 2);
     mat << a,  std::complex<double>(3, 4),
@@ -48,6 +49,7 @@ int main()
     std::cout << std::conj(std::sqrt(a)) <<'\n';
     std::complex<double> z(0.0, -1.0);
     std::cout << z*z << '\n';
+    */
 
     /*
     // Meshgrid testing

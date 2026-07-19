@@ -137,7 +137,7 @@ struct ScatteringMatrix
 // 2. Build device layers on grid (initialize the Device)
 
 // 3. Compute the Convolution matrices for each layer and each field (er, ur)
-Matrix ConvMat(const std::vector<Real>& field, int layer, int Nx, int Ny, int Nx_harmonics, int Ny_harmonics); // add then in place the convolution matrices for each layer and each field (er, ur) into the Device struct
+Matrix ConvMat(const std::vector<Complex>& field, int layer, int Nx, int Ny, int Nx_harmonics, int Ny_harmonics); // add then in place the convolution matrices for each layer and each field (er, ur) into the Device struct
 
 // 4. Compute Wave Vector Expansion, ie update k_inc, Kx, Ky, Kz_ref, Kz_trn
 void ComputeWaveVectors(const Device& device, const Source& source, const RCWAParams& params, std::vector<Complex>& k_inc, Vector& Kx, Vector& Ky, Vector& Kz_ref, Vector& Kz_trn);

@@ -3,7 +3,7 @@
 #include <unsupported/Eigen/FFT>
 #include <iostream>
 
-Matrix ConvMat(const std::vector<Real>& field, int layer, int Nx, int Ny, int Nx_harmonics, int Ny_harmonics)
+Matrix ConvMat(const std::vector<Complex>& field, int layer, int Nx, int Ny, int Nx_harmonics, int Ny_harmonics)
 {                 
     /*
     Function that returns the 2D convolution matrix for a given field for a specific layer.
@@ -13,25 +13,26 @@ Matrix ConvMat(const std::vector<Real>& field, int layer, int Nx, int Ny, int Nx
     */
 
     // Map the input field to a row-major matrix of size Ny x Nx
-    using RowMajorMatrixXdMap = Eigen::Map<const Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
+    using RowMajorMatrixXdMap = Eigen::Map<const Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
     //                                  raw pointer of data + move it to the specific layer, then map it to a row-major matrix of size Ny x Nx
     RowMajorMatrixXdMap realRowMajorMap(field.data() + layer * Nx * Ny, Ny, Nx);
     // cast the real row-major matrix to a complex column-major matrix of size Ny x Nx (default Eigen matrix is column-major)
-    Matrix F = realRowMajorMap.cast<Complex>();
+    //Matrix F = realRowMajorMap.cast<Complex>();
+    Matrix F = realRowMajorMap; // no need to cast, data is already Complex
 
     // FFT computation
     Eigen::FFT<Real> fft;
     // By row
+    Vector row_fft;
     for (int iy = 0; iy < Ny; ++iy)
     {
-        Vector row_fft;
         fft.fwd(row_fft, F.row(iy));
         F.row(iy) = row_fft;
     }
     // By column
+    Vector col_fft;
     for (int ix = 0; ix < Nx; ++ix)
     {
-        Vector col_fft;
         fft.fwd(col_fft, F.col(ix));
         F.col(ix) = col_fft;
     }
