@@ -72,13 +72,13 @@ struct RCWAParams
 {
     int Nx_harmonics{}; // number of harmonics along X axis
     int Ny_harmonics{}; // number of harmonics along Y axis
-    //
-    Real er_ref{};    // permittivity of reflection region (superstrate)
-    Real ur_ref{};    // permeability of reflection region
-    Real er_trn{};    // permittivity of transmission region (substrate)
-    Real ur_trn{};    // permeability of transmission region
+    // Support for non lossless materials
+    Complex er_ref{};    // permittivity of reflection region (superstrate)
+    Complex ur_ref{};    // permeability of reflection region
+    Complex er_trn{};    // permittivity of transmission region (substrate)
+    Complex ur_trn{};    // permeability of transmission region
 
-    RCWAParams(int Nx_harmonics_, int Ny_harmonics_, Real er_ref_, Real ur_ref_, Real er_trn_, Real ur_trn_)
+    RCWAParams(int Nx_harmonics_, int Ny_harmonics_, Complex er_ref_, Complex ur_ref_, Complex er_trn_, Complex ur_trn_)
     : Nx_harmonics(Nx_harmonics_), Ny_harmonics(Ny_harmonics_), er_ref(er_ref_), ur_ref(ur_ref_), er_trn(er_trn_), ur_trn(ur_trn_)
     {
     }
@@ -191,6 +191,17 @@ void MeshGrid(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& x, const Eigen::Ma
 {
     X = x.transpose().replicate(y.size(), 1);
     Y = y.replicate(1, x.size());
+}
+
+// conj_unsigned_zero function, template
+template <typename T>
+std::complex<T> conj_unsigned_zero(const std::complex<T>& z) {
+    // Function that computes the conjugate of a complex number, avoiding IEEE 754 standard for std::conj()
+    // if z = (1.0, 0.0) ==> std::conj(z) = (1.0, -0.0)
+    // If the imaginary part is exactly 0 (positive or negative), keep it 0.0
+    // Otherwise, negate it normally.
+    T imag_part = (z.imag() == T(0.0)) ? T(0.0) : -z.imag();
+    return {z.real(), imag_part};
 }
 
 struct EigenvalSolverResults
