@@ -128,6 +128,11 @@ void ComputeWaveVectors(const Device& device, const Source& source, const RCWAPa
     std::cout << std::conj(params.ur_ref) << '\n';
     std::cout << conj_unsigned_zero(params.ur_ref) << '\n';
 
+    /*
+    Sign convention: e^{-jkz} for forward propagating waves
+    --> kz_ref: Re < 0 for propagating, Im > 0 for evanescent
+    custom conjugate operation enforces correct branch of sqrt
+    */
     Matrix k_z_ref = -(conj_unsigned_zero(params.ur_ref) * conj_unsigned_zero(params.er_ref) - Kx_tilde.array().square() - Ky_tilde.array().square()).sqrt().conjugate();
     Matrix k_z_trn = (conj_unsigned_zero(params.ur_trn) * conj_unsigned_zero(params.er_trn) - Kx_tilde.array().square() - Ky_tilde.array().square()).sqrt().conjugate();
     //std::cout << Kx_tilde.rows() << " " << Kx_tilde.cols() << '\n';
