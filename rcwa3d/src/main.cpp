@@ -3,7 +3,7 @@
 
 int main()
 {
-    int Nx = 16;
+    int Nx = 16; // make sure it's always even
     int Ny = 16;
 
     int Nx_harmonics = 1;
@@ -39,7 +39,20 @@ int main()
     ScatteringMatrix A(C, C, C, C);
     ScatteringMatrix B(C, C, C, C);
     ScatteringMatrix res = RedhefferProduct(A, B);
-
+    std::complex<double> a(-1.0, 0.0);
+    std::cout << a*a << '\n';
+    std::complex<double> b(-1.0, -0.0);
+    if (a == b)
+        std::cout << "Gotcha" << '\n';
+    if (unsigned_sqrt(a) == unsigned_sqrt(b))
+        std::cout << "Gotcha2" << '\n';
+    if (std::sqrt(a) == std::sqrt(b))
+        std::cout << "Gotcha2.1" << '\n';    
+    if (a*a == b*b)
+        std::cout << a*a <<'\n';
+        std::cout << b*b << '\n';
+        std::cout << "Gotcha3" << '\n';     
+    std::cout << std::sqrt(a) << " " << std::sqrt(b) << '\n';      
     /*
     std::complex<double> a(-1.0, 0.0);
     Eigen::MatrixXcd mat(2, 2);
