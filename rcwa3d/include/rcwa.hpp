@@ -10,13 +10,35 @@
 using namespace std::complex_literals; // Enables the '1i' literal
 using Real = double;
 using Complex = std::complex<Real>;
-using Matrix = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>; // check properties, it is a complex matrix with dynamic size (BY DEFAULT COLUMN MAJOR ORDER)
+using Matrix = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>; // it is a complex matrix with dynamic size (BY DEFAULT COLUMN MAJOR ORDER)
 using Vector = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
 
-using MatrixXcd = Eigen::MatrixXcd; 
-using VectorXcd = Eigen::VectorXcd;
+// ======================================================================================
 
+// Safe complex square root, it sanitises -0 imaginary part before sqrt
+// to avoid branch cut issues from IEEE 754 signed zero
+inline Complex unsigned_sqrt(Complex z)
+{
+    if (z.imag() == 0.0) z = Complex(z.real(), 0.0);
+    return std::sqrt(z);
+}
 
+// Element-wise safe sqrt for MatrixXcd
+//inline Matrix unsigned_sqrt(const Matrix& M)
+//{
+//    return M.unaryExpr([](Complex z) {return unsigned_sqrt(z);});
+//}
+
+// Eigen expression version: it accepts Matrix, Vector, Array and lazy expressions
+template<typename Derived>
+inline auto unsigned_sqrt(const Eigen::EigenBase<Derived>& expr)
+{
+    return expr.derived().unaryExpr([](Complex z) -> Complex {
+        if (z.imag() == 0.0) z = Complex(z.real(), 0.0);
+        return std::sqrt(z);
+    });
+}
+// ======================================================================================
 
 // struct that defines the Device properties
 struct Device 
@@ -194,6 +216,7 @@ void MeshGrid(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& x, const Eigen::Ma
 }
 
 // conj_unsigned_zero function, template
+/*
 template <typename T>
 std::complex<T> conj_unsigned_zero(const std::complex<T>& z) {
     // Function that computes the conjugate of a complex number, avoiding IEEE 754 standard for std::conj()
@@ -203,6 +226,7 @@ std::complex<T> conj_unsigned_zero(const std::complex<T>& z) {
     T imag_part = (z.imag() == T(0.0)) ? T(0.0) : -z.imag();
     return {z.real(), imag_part};
 }
+*/    
 
 struct EigenvalSolverResults
 {

@@ -126,15 +126,14 @@ void ComputeWaveVectors(const Device& device, const Source& source, const RCWAPa
     //Matrix k_z_ref = -(std::conj(params.ur_ref) * std::conj(params.er_ref) - Kx_tilde.array().square() - Ky_tilde.array().square()).sqrt().conjugate();
     //Matrix k_z_trn = (std::conj(params.ur_trn) * std::conj(params.er_trn) - Kx_tilde.array().square() - Ky_tilde.array().square()).sqrt().conjugate();
     std::cout << std::conj(params.ur_ref) << '\n';
-    std::cout << conj_unsigned_zero(params.ur_ref) << '\n';
 
     /*
     Sign convention: e^{-jkz} for forward propagating waves
-    --> kz_ref: Re < 0 for propagating, Im > 0 for evanescent
-    custom conjugate operation enforces correct branch of sqrt
+    --> k_z_ref: Re < 0 for propagating, Im > 0 for evanescent
+    custom correct branch of sqrt enforced via unsigned_sqrt
     */
-    Matrix k_z_ref = -(conj_unsigned_zero(params.ur_ref) * conj_unsigned_zero(params.er_ref) - Kx_tilde.array().square() - Ky_tilde.array().square()).sqrt().conjugate();
-    Matrix k_z_trn = (conj_unsigned_zero(params.ur_trn) * conj_unsigned_zero(params.er_trn) - Kx_tilde.array().square() - Ky_tilde.array().square()).sqrt().conjugate();
+    Matrix k_z_ref = -(unsigned_sqrt(std::conj(params.ur_ref) * std::conj(params.er_ref) - Kx_tilde.array().square() - Ky_tilde.array().square()).conjugate());
+    Matrix k_z_trn = unsigned_sqrt(std::conj(params.ur_trn) * std::conj(params.er_trn) - Kx_tilde.array().square() - Ky_tilde.array().square()).conjugate();
     //std::cout << Kx_tilde.rows() << " " << Kx_tilde.cols() << '\n';
     //std::cout << k_z_ref.rows() << " " << k_z_ref.cols() << '\n';
     //std::cout << k_z_ref << '\n';
@@ -149,7 +148,14 @@ void ComputeWaveVectors(const Device& device, const Source& source, const RCWAPa
     //std::cout << k_z_ref << '\n';
     //std::cout << k_z_ref.rows() << " " << k_z_ref.cols() << '\n';
     //std::cout << Kz_ref << '\n';
+    std::cout << "Kx" << '\n';
     std::cout << '\n';
+    std::cout << Kx << '\n';
+    std::cout << '\n';
+    std::cout << "Ky" << '\n';
+    std::cout << '\n';
+    std::cout << Ky << '\n';
+
 
     // NOTE: REMEMBER TO USE THE MATRICES/VECTORS Kx, Ky, Kz_ref AND Kz_trn WITH THE CALL .asDiagonal()
 }
@@ -160,7 +166,7 @@ void GapMedium(const Vector& Kx, const Vector& Ky, Matrix& W0, Matrix& V0)
     /*
     Compute Eigenmodes of the Gap medium. To be revised!!! ==================================
     */
-    Vector Kz = (1.0 - Kx.array().square() - Ky.array().square()).sqrt().conjugate();
+    Vector Kz = unsigned_sqrt(1.0 - Kx.array().square() - Ky.array().square()).conjugate();
     std::cout << "Kz" << '\n';
     std::cout << '\n';
     std::cout << Kz << '\n';
@@ -175,20 +181,18 @@ void GapMedium(const Vector& Kx, const Vector& Ky, Matrix& W0, Matrix& V0)
     //std::cout << '\n';
     //std::cout << top_left_Mat.rows() << " " << top_left_Mat.cols() << '\n';
     Vector top_right = 1.0 - Kx.array().square();
-    Matrix top_right_Mat = top_right.asDiagonal();
+    //Matrix top_right_Mat = top_right.asDiagonal();
     Vector bottom_left = Ky.array().square() - 1.0;
-    Matrix bottom_left_Mat = bottom_left.asDiagonal();
-    Matrix bottom_right_Mat = - top_left_Mat;
+    //Matrix bottom_left_Mat = bottom_left.asDiagonal();
+    //Matrix bottom_right_Mat = - top_left_Mat;
     Matrix Q(2*block_size, 2*block_size);
-    //Q << Kx_Ky.asDiagonal(), top_right.asDiagonal(), bottom_left.asDiagonal(), (-Kx_Ky).asDiagonal();
+
     Q.block(0, 0, block_size, block_size) = Kx_Ky.asDiagonal();
     Q.block(0, block_size, block_size, block_size) = top_right.asDiagonal();
     Q.block(block_size, 0, block_size, block_size) = bottom_left.asDiagonal();
     Q.block(block_size, block_size, block_size, block_size) = (-bottom_left).asDiagonal();
-    //Q.block(0, block_size, block_size+1, )
-    //Q << top_left_Mat, top_right_Mat, bottom_left_Mat, bottom_right_Mat;
     //std::cout << Q <<'\n';
-    //std::cout << 
+
     W0 = Matrix::Identity(2*block_size, 2*block_size);
 
     Vector lambda(2*block_size);
@@ -281,12 +285,12 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     std::cout << W_i << '\n';
 
     // Check a more elegant way of computing it =======================
-    Matrix V_i = Q * W_i * lambda2.array().sqrt().inverse().matrix().asDiagonal();
+    Matrix V_i = Q * W_i * unsigned_sqrt(lambda2.array()).inverse().matrix().asDiagonal(); // is .array() really needed? lazy expr...
     Matrix W_i_inv_W0 = W_i.lu().solve(W0);
     Matrix V_i_inv_V0 = V_i.lu().solve(V0);
     Matrix A_i0 = W_i_inv_W0  + V_i_inv_V0;
     Matrix B_i0 = W_i_inv_W0 - V_i_inv_V0;
-    Matrix X_i = (-source.k0 * device.t[layer] * lambda2.array().sqrt()).exp().matrix().asDiagonal(); // Matrix Exponential
+    Matrix X_i = (-source.k0 * device.t[layer] * unsigned_sqrt(lambda2.array())).exp().matrix().asDiagonal(); // Matrix Exponential
 
     // Assemble S matrix
     // Lazy impl, enable NRVO next
