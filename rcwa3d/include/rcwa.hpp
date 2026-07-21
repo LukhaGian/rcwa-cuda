@@ -57,8 +57,8 @@ struct Device
     std::vector<Real> t{};   // thickness per layer, size num_layers
 
     // convolution space arrays: TBD if 3d Tensor solution is better or std::vector<Matrix> suffices (iterating over layers)
-    std::vector<Matrix> erc{}; // convolution of perimittivity er num_layers x Ny_harmonics × Nx_harmonics
-    std::vector<Matrix> urc{}; // convolution of permeability ur num_layers x Ny_harmonics × Nx_harmonics
+    std::vector<Matrix> erc{}; // convolution of perimittivity er num_layers x PQ × PQ
+    std::vector<Matrix> urc{}; // convolution of permeability ur num_layers x PQ × PQ
 
     Device() : Nx(1), Ny(1), num_layers(1), Lx(1.0), Ly(1.0) // Default constructor, add the remaining default entries for the field DONT USE IT FOR NOW
     {
