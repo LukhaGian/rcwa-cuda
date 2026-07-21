@@ -67,7 +67,8 @@ struct Device
     Device(int Nx_, int Ny_, int num_layers_, Real Lx_, Real Ly_, const std::vector<Complex>& er_, 
         const std::vector<Complex>& ur_, const std::vector<Real>& t_, int Nx_harmonics_, int Ny_harmonics_) 
         : Nx(Nx_), Ny(Ny_), num_layers(num_layers_), Lx(Lx_), Ly(Ly_), er(er_), ur(ur_), t(t_),
-        erc(num_layers_, Matrix::Zero(Ny_harmonics_, Nx_harmonics_)), urc(num_layers_, Matrix::Zero(Ny_harmonics_, Nx_harmonics_))
+        erc(num_layers_, Matrix::Zero((2 * Ny_harmonics_ + 1) * (2 * Nx_harmonics_ + 1), (2 * Ny_harmonics_ + 1) * (2 * Nx_harmonics_ + 1))),
+        urc(num_layers_, Matrix::Zero((2 * Ny_harmonics_ + 1) * (2 * Nx_harmonics_ + 1), (2 * Ny_harmonics_ + 1) * (2 * Nx_harmonics_ + 1)))
     {
     }
 };
