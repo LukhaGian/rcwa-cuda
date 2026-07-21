@@ -9,8 +9,8 @@ int main()
     int Nx_harmonics = 1;
     int Ny_harmonics = 2;
 
-    std::vector<Real> er(5);
-    std::vector<Real> ur(5);
+    std::vector<Complex> er(5);
+    std::vector<Complex> ur(5);
     std::vector<Real> t(5);
     Device device(Nx, Ny, 1, 1.0, 1.0, er, ur, t, Nx_harmonics, Ny_harmonics);
     Source source(1, M_PI/4, M_PI/4, 1, 1);

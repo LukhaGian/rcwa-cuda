@@ -52,8 +52,8 @@ struct Device
     // 3D arrays: er[iy][ix][layer] stored as flat vector er[layer * Nx * Ny + iy * Nx + ix] (row-major order) --> be careful and TBD
 
     // spatial arrays
-    std::vector<Real> er{};  // permittivity Ny × Nx x num_layers
-    std::vector<Real> ur{};  // permeability Ny × Nx x num_layers
+    std::vector<Complex> er{};  // permittivity Ny × Nx x num_layers
+    std::vector<Complex> ur{};  // permeability Ny × Nx x num_layers
     std::vector<Real> t{};   // thickness per layer, size num_layers
 
     // convolution space arrays: TBD if 3d Tensor solution is better or std::vector<Matrix> suffices (iterating over layers)
@@ -64,8 +64,8 @@ struct Device
     {
     }
 
-    Device(int Nx_, int Ny_, int num_layers_, Real Lx_, Real Ly_, const std::vector<Real>& er_, 
-        const std::vector<Real>& ur_, const std::vector<Real>& t_, int Nx_harmonics_, int Ny_harmonics_) 
+    Device(int Nx_, int Ny_, int num_layers_, Real Lx_, Real Ly_, const std::vector<Complex>& er_, 
+        const std::vector<Complex>& ur_, const std::vector<Real>& t_, int Nx_harmonics_, int Ny_harmonics_) 
         : Nx(Nx_), Ny(Ny_), num_layers(num_layers_), Lx(Lx_), Ly(Ly_), er(er_), ur(ur_), t(t_),
         erc(num_layers_, Matrix::Zero(Ny_harmonics_, Nx_harmonics_)), urc(num_layers_, Matrix::Zero(Ny_harmonics_, Nx_harmonics_))
     {
