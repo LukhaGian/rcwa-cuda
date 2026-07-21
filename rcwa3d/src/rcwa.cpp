@@ -244,13 +244,11 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     // Build eigenvalue problem
     // P_i
     Matrix P_i = Matrix::Zero(2*PQ, 2*PQ);
-    // solving column-by-column in a loop THINK ABOUT IT, IT SHOULD BE WAY MORE EFFICIENT!!! ======================== we have a diagonal matrix on the right hand side after all
-    //Matrix Kx_Mat = Kx.asDiagonal();
     //                             TO BE SUBSTITUTED WITH NO BOUND CHECK [], faster
-    //Matrix erc_inv_Kx = device.erc.at(layer).lu().solve(Kx_Mat);
     //                                                  view of Kx creates a temporary full dense matrix ==> A bit of a waste!!!!
     Matrix erc_inv_Kx = device.erc.at(layer).lu().solve(Kx.asDiagonal().toDenseMatrix());
     Matrix erc_inv_Ky = device.erc.at(layer).lu().solve(Ky.asDiagonal().toDenseMatrix());
+    // P_i
     P_i.block(0, 0, PQ, PQ) = Kx.asDiagonal() * erc_inv_Ky; // top left
     P_i.block(0, PQ, PQ, PQ) = device.urc.at(layer) - Kx.asDiagonal() * erc_inv_Kx; // top right
     P_i.block(PQ, 0, PQ, PQ) = Ky.asDiagonal() * erc_inv_Ky - device.urc.at(layer); // bottom left
@@ -285,7 +283,7 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     std::cout << W_i << '\n';
 
     // Check a more elegant way of computing it =======================
-    Matrix V_i = Q * W_i * unsigned_sqrt(lambda2.array()).inverse().matrix().asDiagonal(); // is .array() really needed? lazy expr...
+    Matrix V_i = Q_i * W_i * unsigned_sqrt(lambda2.array()).inverse().matrix().asDiagonal(); // is .array() really needed? lazy expr...
     Matrix W_i_inv_W0 = W_i.lu().solve(W0);
     Matrix V_i_inv_V0 = V_i.lu().solve(V0);
     Matrix A_i0 = W_i_inv_W0  + V_i_inv_V0;
@@ -293,10 +291,11 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     Matrix X_i = (-source.k0 * device.t[layer] * unsigned_sqrt(lambda2.array())).exp().matrix().asDiagonal(); // Matrix Exponential
 
     // Assemble S matrix
-    // Lazy impl, enable NRVO next
-    Matrix partial_prod = A_i0 - X_i * B_i0 * A_i0.lu().solve(X_i) * B_i0;
-    Matrix S11 = partial_prod.lu().solve(X_i * B_i0 * A_i0.lu().solve(X_i) * A_i0 - B_i0);
-    Matrix S12 = partial_prod.lu().solve(X_i) * (A_i0 - B_i0 * A_i0.lu().solve(B_i0));
+    // Lazy implementation, enable NRVO next
+    auto A_i0_lu = A_i0.lu();
+    auto partial_prod_lu = (A_i0 - X_i * B_i0 * A_i0_lu.solve(X_i) * B_i0).lu();
+    Matrix S11 = partial_prod_lu.solve(X_i * B_i0 * A_i0_lu.solve(X_i) * A_i0 - B_i0);
+    Matrix S12 = partial_prod_lu.solve(X_i) * (A_i0 - B_i0 * A_i0_lu.solve(B_i0));
 
     return ScatteringMatrix(S11, S12, S12, S11);
 }
