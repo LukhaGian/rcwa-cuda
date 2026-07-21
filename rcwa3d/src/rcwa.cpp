@@ -164,7 +164,7 @@ void ComputeWaveVectors(const Device& device, const Source& source, const RCWAPa
 void GapMedium(const Vector& Kx, const Vector& Ky, Matrix& W0, Matrix& V0)
 {
     /*
-    Compute Eigenmodes of the Gap medium. To be revised!!! ==================================
+    Compute Eigenmodes of the Gap medium.
     */
     Vector Kz = unsigned_sqrt(1.0 - Kx.array().square() - Ky.array().square()).conjugate();
     std::cout << "Kz" << '\n';
@@ -176,7 +176,7 @@ void GapMedium(const Vector& Kx, const Vector& Ky, Matrix& W0, Matrix& V0)
     Vector Kx_Ky = Kx.array() * Ky.array();
     //Vector main_diag(Kx_Ky.size()*2);
     //main_diag << Kx_Ky, -Kx_Ky;
-    Matrix top_left_Mat = Kx_Ky.asDiagonal();
+    //Matrix top_left_Mat = Kx_Ky.asDiagonal();
     //std::cout << top_left_Mat << '\n';
     //std::cout << '\n';
     //std::cout << top_left_Mat.rows() << " " << top_left_Mat.cols() << '\n';
@@ -190,7 +190,7 @@ void GapMedium(const Vector& Kx, const Vector& Ky, Matrix& W0, Matrix& V0)
     Q.block(0, 0, block_size, block_size) = Kx_Ky.asDiagonal();
     Q.block(0, block_size, block_size, block_size) = top_right.asDiagonal();
     Q.block(block_size, 0, block_size, block_size) = bottom_left.asDiagonal();
-    Q.block(block_size, block_size, block_size, block_size) = (-bottom_left).asDiagonal();
+    Q.block(block_size, block_size, block_size, block_size) = (- Kx_Ky).asDiagonal();
     //std::cout << Q <<'\n';
 
     W0 = Matrix::Identity(2*block_size, 2*block_size);
@@ -199,7 +199,7 @@ void GapMedium(const Vector& Kx, const Vector& Ky, Matrix& W0, Matrix& V0)
     lambda << 1i*Kz, 1i*Kz;
     //std::cout << '\n';
     //std::cout << lambda << '\n';
-    // Possible instability for lambda
+    // Possible instability for lambda?
     Matrix Test = Q * lambda.array().inverse().matrix().asDiagonal(); // check if .matrix is really needed
    
     //V0 = Q.array().rowwise() / lambda.array();
