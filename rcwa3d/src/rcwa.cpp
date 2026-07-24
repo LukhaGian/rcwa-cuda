@@ -148,13 +148,13 @@ void ComputeWaveVectors(const Device& device, const Source& source, const RCWAPa
     //std::cout << k_z_ref << '\n';
     //std::cout << k_z_ref.rows() << " " << k_z_ref.cols() << '\n';
     //std::cout << Kz_ref << '\n';
-    std::cout << "Kx" << '\n';
-    std::cout << '\n';
-    std::cout << Kx << '\n';
-    std::cout << '\n';
-    std::cout << "Ky" << '\n';
-    std::cout << '\n';
-    std::cout << Ky << '\n';
+    //std::cout << "Kx" << '\n';
+    //std::cout << '\n';
+    //std::cout << Kx << '\n';
+    //std::cout << '\n';
+    //std::cout << "Ky" << '\n';
+    //std::cout << '\n';
+    //std::cout << Ky << '\n';
 
 
     // NOTE: REMEMBER TO USE THE MATRICES/VECTORS Kx, Ky, Kz_ref AND Kz_trn WITH THE CALL .asDiagonal()
@@ -167,9 +167,9 @@ void GapMedium(const Vector& Kx, const Vector& Ky, Matrix& W0, Matrix& V0)
     Compute Eigenmodes of the Gap medium.
     */
     Vector Kz = unsigned_sqrt(1.0 - Kx.array().square() - Ky.array().square()).conjugate();
-    std::cout << "Kz" << '\n';
-    std::cout << '\n';
-    std::cout << Kz << '\n';
+    //std::cout << "Kz" << '\n';
+    //std::cout << '\n';
+    //std::cout << Kz << '\n';
 
     int block_size = Kz.size();
 
@@ -192,7 +192,7 @@ void GapMedium(const Vector& Kx, const Vector& Ky, Matrix& W0, Matrix& V0)
     Q.block(block_size, 0, block_size, block_size) = bottom_left.asDiagonal();
     Q.block(block_size, block_size, block_size, block_size) = (- Kx_Ky).asDiagonal();
     //std::cout << Q <<'\n';
-
+    std::cout << "Q " << double((Q.array() != 0.0).count()) / Q.size() << '\n';
     W0 = Matrix::Identity(2*block_size, 2*block_size);
 
     Vector lambda(2*block_size);
@@ -247,12 +247,16 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     //                             TO BE SUBSTITUTED WITH NO BOUND CHECK [], faster
     //                                                  view of Kx creates a temporary full dense matrix ==> A bit of a waste!!!!
     Matrix erc_inv_Kx = device.erc.at(layer).lu().solve(Kx.asDiagonal().toDenseMatrix());
+    std::cout << "erc_inv_Kx " << double((erc_inv_Kx.array() != 0.0).count()) / erc_inv_Kx.size() << '\n';
+    std::cout << "Test1" << '\n';
     Matrix erc_inv_Ky = device.erc.at(layer).lu().solve(Ky.asDiagonal().toDenseMatrix());
+    std::cout << "erc_inv_Ky " << double((erc_inv_Ky.array() != 0.0).count()) / erc_inv_Ky.size() << '\n';
     // P_i
     P_i.block(0, 0, PQ, PQ) = Kx.asDiagonal() * erc_inv_Ky; // top left
     P_i.block(0, PQ, PQ, PQ) = device.urc.at(layer) - Kx.asDiagonal() * erc_inv_Kx; // top right
     P_i.block(PQ, 0, PQ, PQ) = Ky.asDiagonal() * erc_inv_Ky - device.urc.at(layer); // bottom left
     P_i.block(PQ, PQ, PQ, PQ) = (-Ky).asDiagonal() * erc_inv_Kx; // bottom right
+    std::cout << "P_i " << double((P_i.array() != 0.0).count()) / P_i.size() << '\n';
     // Q_i
     Matrix Q_i = Matrix::Zero(2*PQ, 2*PQ);
     Matrix urc_inv_Kx = device.urc.at(layer).lu().solve(Kx.asDiagonal().toDenseMatrix());
@@ -261,7 +265,8 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     Q_i.block(0, PQ, PQ, PQ) = device.erc.at(layer) - Kx.asDiagonal() * urc_inv_Kx;
     Q_i.block(PQ, 0, PQ, PQ) = Ky.asDiagonal() * urc_inv_Ky - device.erc.at(layer);
     Q_i.block(PQ, PQ, PQ, PQ) = (-Ky).asDiagonal() * urc_inv_Kx;
-
+    std::cout << "Q_i " << double((Q_i.array() != 0.0).count()) / Q_i.size() << '\n';
+    std::cout << "Test2" << '\n';
     Matrix Omega2 = P_i * Q_i;
 
     // solve eigenvalue problem Omega2 * x = lambda * x
@@ -273,14 +278,18 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     Eigen::ComplexEigenSolver<Matrix> solver(Omega2);
 
     if (solver.info() != Eigen::Success) abort();
+    std::cout << "Test3" << '\n';
 
-    std::cout << solver.eigenvectors() << '\n';
-    std::cout << solver.eigenvalues() << '\n';
+    //std::cout << solver.eigenvectors() << '\n';
+    //std::cout << solver.eigenvalues() << '\n';
 
     auto [lambda2, W_i] = extraction(std::move(solver));
+    std::cout << "Test4" << '\n';
 
-    std::cout << lambda2 << '\n';
-    std::cout << W_i << '\n';
+    //std::cout << lambda2 << '\n';
+    //std::cout << W_i << '\n';
+    if (lambda2.isApprox(solver.eigenvalues()) && W_i.isApprox(solver.eigenvectors()))
+        std::cout << "Similar" << '\n';
 
     // Check a more elegant way of computing it =======================
     Matrix V_i = Q_i * W_i * unsigned_sqrt(lambda2.array()).inverse().matrix().asDiagonal(); // is .array() really needed? lazy expr...
@@ -288,7 +297,8 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     Matrix V_i_inv_V0 = V_i.lu().solve(V0);
     Matrix A_i0 = W_i_inv_W0  + V_i_inv_V0;
     Matrix B_i0 = W_i_inv_W0 - V_i_inv_V0;
-    Matrix X_i = (-source.k0 * device.t[layer] * unsigned_sqrt(lambda2.array())).exp().matrix().asDiagonal(); // Matrix Exponential
+    Matrix X_i = (-source.k0 * device.t.at(layer) * unsigned_sqrt(lambda2.array())).exp().matrix().asDiagonal(); // Matrix Exponential
+    std::cout << "Test5" << '\n';
 
     // Assemble S matrix
     // Lazy implementation, enable NRVO next
@@ -296,8 +306,125 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     auto partial_prod_lu = (A_i0 - X_i * B_i0 * A_i0_lu.solve(X_i) * B_i0).lu();
     Matrix S11 = partial_prod_lu.solve(X_i * B_i0 * A_i0_lu.solve(X_i) * A_i0 - B_i0);
     Matrix S12 = partial_prod_lu.solve(X_i) * (A_i0 - B_i0 * A_i0_lu.solve(B_i0));
+    std::cout << "Test6" << '\n';
 
     return ScatteringMatrix(S11, S12, S12, S11);
+}
+
+ScatteringMatrix SMatrixReflection(const RCWAParams& params, const Vector& Kx, const Vector& Ky, Vector& Kz_ref, const Matrix& W0, const Matrix& V0)
+{
+    /*
+    Function that computes the Reflection side Connection S-Matrix
+    */
+    int block_size = Kz_ref.size();
+
+    Vector Kx_Ky = Kx.array() * Ky.array(); // since Kx and Ky are both diagonal, Kx * Ky = Ky * Kx
+    Vector top_right = params.ur_ref * params.er_ref - Kx.array().square();
+    Vector bottom_left = Ky.array().square() - params.ur_ref * params.er_ref;
+
+    Matrix Q_ref(2*block_size, 2*block_size);
+
+    Q_ref.block(0, 0, block_size, block_size) = Kx_Ky.asDiagonal();
+    Q_ref.block(0, block_size, block_size, block_size) = top_right.asDiagonal();
+    Q_ref.block(block_size, 0, block_size, block_size) = bottom_left.asDiagonal();
+    Q_ref.block(block_size, block_size, block_size, block_size) = (- Kx_Ky).asDiagonal(); // see comment above
+    //std::cout << Q <<'\n';
+    Q_ref /= params.ur_ref;
+    std::cout << "Q_ref " << double((Q_ref.array() != 0.0).count()) / Q_ref.size() << '\n';
+    Matrix W_ref = Matrix::Identity(2*block_size, 2*block_size);
+
+    Vector lambda_ref(2*block_size);
+    lambda_ref << -1i*Kz_ref, -1i*Kz_ref;
+
+    Matrix V_ref(2*block_size, 2*block_size);
+
+    Matrix Test = Q_ref * lambda_ref.array().inverse().matrix().asDiagonal(); // check if .matrix is really needed
+   
+    //V0 = Q.array().rowwise() / lambda.array();
+    // check if it's the best way to do this
+    for (int j = 0; j < Q_ref.cols(); ++j)
+    {
+        V_ref.col(j) = Q_ref.col(j) / lambda_ref(j); // are we potentially dividing for 0? Yeah....
+    }
+    //std::cout << V0 << '\n';
+    if (V_ref.isApprox(Test))
+        std::cout << "Similar" << '\n';
+    //std::cout << V_ref << '\n';
+
+    Matrix W0_inv_W_ref = W0.lu().solve(W_ref);
+    //std::cout << "W_ref " << W0_inv_W_ref.isApprox(W_ref) << '\n';
+    Matrix V0_inv_V_ref = V0.lu().solve(V_ref);
+    //std::cout << "V0_inv_V_ref " << V0_inv_V_ref << '\n';
+    Matrix A_i1 = W0_inv_W_ref + V0_inv_V_ref;
+    Matrix B_i1 = W0_inv_W_ref - V0_inv_V_ref;
+
+    
+    Matrix A_i1_inv_B_i1 = A_i1.lu().solve(B_i1);
+
+    std::cout << '\n';
+    std::cout << A_i1_inv_B_i1 << '\n';
+
+    Matrix S11 = - A_i1_inv_B_i1;
+    Matrix S12 = 2 * A_i1.inverse();
+    Matrix S21 = 0.5 * (A_i1 - B_i1 * A_i1_inv_B_i1);
+    Matrix S22 = (A_i1.transpose().lu().solve(B_i1.transpose())).transpose();
+
+    return ScatteringMatrix(S11, S12, S21, S22);
+}
+
+
+ScatteringMatrix SMatrixTransmission(const RCWAParams& params, const Vector& Kx, const Vector& Ky, Vector& Kz_trn, const Matrix& W0, const Matrix& V0)
+{
+    /*
+    Function that computes the Reflection side Connection S-Matrix
+    */
+    int block_size = Kz_trn.size();
+
+    Vector Kx_Ky = Kx.array() * Ky.array(); // since Kx and Ky are both diagonal, Kx * Ky = Ky * Kx
+    Vector top_right = params.ur_trn * params.er_trn - Kx.array().square();
+    Vector bottom_left = Ky.array().square() - params.ur_trn * params.er_trn;
+
+    Matrix Q_trn(2*block_size, 2*block_size);
+
+    Q_trn.block(0, 0, block_size, block_size) = Kx_Ky.asDiagonal();
+    Q_trn.block(0, block_size, block_size, block_size) = top_right.asDiagonal();
+    Q_trn.block(block_size, 0, block_size, block_size) = bottom_left.asDiagonal();
+    Q_trn.block(block_size, block_size, block_size, block_size) = (- Kx_Ky).asDiagonal(); // see comment above
+    //std::cout << Q <<'\n';
+    Q_trn /= params.ur_trn;
+    std::cout << "Q_trn " << double((Q_trn.array() != 0.0).count()) / Q_trn.size() << '\n';
+    Matrix W_trn = Matrix::Identity(2*block_size, 2*block_size);
+
+    Vector lambda_trn(2*block_size);
+    lambda_trn << 1i*Kz_trn, 1i*Kz_trn;
+
+    Matrix V_trn(2*block_size, 2*block_size);
+
+    Matrix Test = Q_trn * lambda_trn.array().inverse().matrix().asDiagonal(); // check if .matrix is really needed
+   
+    // check if it's the best way to do this
+    for (int j = 0; j < Q_trn.cols(); ++j)
+    {
+        V_trn.col(j) = Q_trn.col(j) / lambda_trn(j); // are we potentially dividing for 0? Yeah....
+    }
+    //std::cout << V0 << '\n';
+    if (V_trn.isApprox(Test))
+        std::cout << "Similar" << '\n';
+    //std::cout << V_trn << '\n';
+
+    Matrix W0_inv_W_trn = W0.lu().solve(W_trn);
+    Matrix V0_inv_V_trn = V0.lu().solve(V_trn);
+    Matrix A_i2 = W0_inv_W_trn + V0_inv_V_trn;
+    Matrix B_i2 = W0_inv_W_trn - V0_inv_V_trn;
+
+    Matrix A_i2_inv_B_i2 = A_i2.lu().solve(B_i2);
+
+    Matrix S11 = (A_i2.transpose().lu().solve(B_i2.transpose())).transpose();
+    Matrix S12 = 0.5 * (A_i2 - B_i2 * A_i2_inv_B_i2);
+    Matrix S21 = 2 * A_i2.inverse();
+    Matrix S22 = - A_i2_inv_B_i2;
+
+    return ScatteringMatrix(S11, S12, S21, S22);
 }
 
 
