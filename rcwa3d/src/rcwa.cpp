@@ -60,16 +60,16 @@ Matrix ConvMat(const std::vector<Complex>& field, int layer, int Nx, int Ny, int
     
     for (int m = 0; m < PQ; ++m)
     {
-        int py_m = m / P - Ny_harmonics; // y index of m
-        int px_m = m % P - Nx_harmonics; // x index of m
+        int px_m = m / Q - Nx_harmonics;  // x is SLOW index
+        int py_m = m % Q - Ny_harmonics;  // y is FAST index
 
         for (int n = 0; n < PQ; ++n)
         {
-            int py_n = n / P - Ny_harmonics; // y index of n
-            int px_n = n % P - Nx_harmonics; // x index of n
+            int px_n = n / Q - Nx_harmonics;
+            int py_n = n % Q - Ny_harmonics;
 
-            int kx_idx = (px_m - px_n) + half_Nx; // index in the FFT shifted matrix along x
-            int ky_idx = (py_m - py_n) + half_Ny; // index in the FFT shifted matrix along y
+            int kx_idx = (px_m - px_n) + half_Nx;
+            int ky_idx = (py_m - py_n) + half_Ny;
             if (kx_idx >= 0 && kx_idx < Nx && ky_idx >= 0 && ky_idx < Ny)
             {
                 C(m, n) = F_shift(ky_idx, kx_idx);
@@ -88,7 +88,7 @@ void ComputeWaveVectors(const Device& device, const Source& source, const RCWAPa
     Function that computes the Wave Vector Expansion.
     */
     // incidence vector
-    Complex n_inc = std::sqrt(params.er_ref * params.ur_ref); // refractive index, added supprt for non lossless materials
+    Complex n_inc = std::sqrt(params.er_ref * params.ur_ref); // refractive index, added support for non lossless materials
     std::cout << n_inc << '\n';
     Real sin_theta = std::sin(source.theta);
     Real cos_theta = std::cos(source.theta);
@@ -123,9 +123,8 @@ void ComputeWaveVectors(const Device& device, const Source& source, const RCWAPa
     std::cout << '\n';
     // Longitudinal vector components in the reflection and transmission region
     // NOTE: Added conjugate operation for non lossless materials (in general complex values)
-    //Matrix k_z_ref = -(std::conj(params.ur_ref) * std::conj(params.er_ref) - Kx_tilde.array().square() - Ky_tilde.array().square()).sqrt().conjugate();
-    //Matrix k_z_trn = (std::conj(params.ur_trn) * std::conj(params.er_trn) - Kx_tilde.array().square() - Ky_tilde.array().square()).sqrt().conjugate();
-    std::cout << std::conj(params.ur_ref) << '\n';
+
+    //std::cout << std::conj(params.ur_ref) << '\n';
 
     /*
     Sign convention: e^{-jkz} for forward propagating waves
@@ -148,13 +147,13 @@ void ComputeWaveVectors(const Device& device, const Source& source, const RCWAPa
     //std::cout << k_z_ref << '\n';
     //std::cout << k_z_ref.rows() << " " << k_z_ref.cols() << '\n';
     //std::cout << Kz_ref << '\n';
-    //std::cout << "Kx" << '\n';
-    //std::cout << '\n';
-    //std::cout << Kx << '\n';
-    //std::cout << '\n';
-    //std::cout << "Ky" << '\n';
-    //std::cout << '\n';
-    //std::cout << Ky << '\n';
+    std::cout << "Kx" << '\n';
+    std::cout << '\n';
+    std::cout << Kx << '\n';
+    std::cout << '\n';
+    std::cout << "Ky" << '\n';
+    std::cout << '\n';
+    std::cout << Ky << '\n';
 
 
     // NOTE: REMEMBER TO USE THE MATRICES/VECTORS Kx, Ky, Kz_ref AND Kz_trn WITH THE CALL .asDiagonal()
@@ -444,13 +443,17 @@ void ComputeSourceModeCoeff(const Source& source, const RCWAParams& params, cons
     a_TE << -k_inc.at(1), k_inc.at(0), 0.0 + 0.0i;
     a_TE.normalize();
     Vector a_TM(3);
-    a_TM << -k_inc.at(2) * a_TE(1), k_inc.at(2) * a_TE(0), k_inc.at(0) * a_TE(1) - k_inc.at(1) * a_TE(0);
+    a_TM << k_inc.at(1) * a_TE(2) - k_inc.at(2) * a_TE(1), k_inc.at(2) * a_TE(0) - k_inc.at(0) * a_TE(2), k_inc.at(0) * a_TE(1) - k_inc.at(1) * a_TE(0);
     a_TM.normalize();
 
     // Compute Polarization Vector
     Vector Pol = source.pte * a_TE + source.ptm * a_TM;
+    std::cout << "POLARIZATION VECTOR" <<'\n';
+    std::cout << Pol <<'\n';
     Pol.normalize(); // Ensure normalization of the vector
-
+    std::cout << '\n';
+    std::cout << "POLARIZATION VECTOR 2" <<'\n';
+    std::cout << Pol <<'\n';
     // Construct delta vector
     int P = 2 * params.Nx_harmonics + 1;
     int Q = 2 * params.Ny_harmonics + 1;
@@ -472,7 +475,6 @@ void ComputeSourceModeCoeff(const Source& source, const RCWAParams& params, cons
     csrc = W_ref.lu().solve(esrc);
 
     std::cout << csrc << '\n';
-
 }
 
 
@@ -512,6 +514,30 @@ void ComputeTransmittedField(const RCWAParams& params, const ScatteringMatrix& S
     */
     t(Eigen::seqN(2*PQ, PQ)) = -(Kx.array() * (t(Eigen::seqN(0, PQ))).array() + Ky.array() * (t(Eigen::seqN(PQ, PQ))).array()).array() / (Kz_trn.array());
 }
+
+
+Results ComputeDiffractionEfficiencies(const RCWAParams& params, const Vector& r, const Vector& t, const std::vector<Complex>& k_inc, const Vector& Kz_ref, const Vector& Kz_trn)
+{
+    /*
+    Function that computes the diffraction efficiencies for reflected and transmitted fields.
+    */
+    int P = 2 * params.Nx_harmonics + 1;
+    int Q = 2 * params.Ny_harmonics + 1;
+    int PQ = P * Q;
+    std::cout << "ComputeDiffractionEfficiencies" <<'\n';
+    // Reflected power
+    Real_Vector r_ref_modes = r(Eigen::seqN(0, PQ)).cwiseAbs2() + r(Eigen::seqN(PQ, PQ)).cwiseAbs2() + r(Eigen::seqN(2*PQ, PQ)).cwiseAbs2();
+    std::cout << r_ref_modes <<'\n';
+    Real_Matrix R = ((((- Kz_ref / params.ur_ref).real()) / (k_inc.at(2) / params.ur_ref).real()).array() * r_ref_modes.array()).reshaped(Q, P);
+    Real R_tot = R.sum();
+    // Transmitted power
+    Real_Vector t_trn_modes = t(Eigen::seqN(0, PQ)).cwiseAbs2() + t(Eigen::seqN(PQ, PQ)).cwiseAbs2() + t(Eigen::seqN(2*PQ, PQ)).cwiseAbs2();
+    std::cout << '\n';
+    std::cout << t_trn_modes <<'\n';
+    Real_Matrix T = ((((Kz_trn / params.ur_trn).real()) / (k_inc.at(2) / params.ur_ref).real()).array() * t_trn_modes.array()).reshaped(Q, P);
+    Real T_tot = T.sum();
+    return Results(R, T, R_tot, T_tot);
+}   
 
 
 ScatteringMatrix RedhefferProduct(const ScatteringMatrix& A, const ScatteringMatrix& B)
