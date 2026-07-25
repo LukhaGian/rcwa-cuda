@@ -476,6 +476,43 @@ void ComputeSourceModeCoeff(const Source& source, const RCWAParams& params, cons
 }
 
 
+void ComputeReflectedField(const RCWAParams& params, const ScatteringMatrix& S_global, const Vector& csrc, const Vector& Kx, const Vector& Ky, const Vector& Kz_ref, const Matrix& W_ref, Vector& r)
+{
+    /*
+    Function that computes the reflected field r.
+    */
+    int P = 2 * params.Nx_harmonics + 1;
+    int Q = 2 * params.Ny_harmonics + 1;
+    int PQ = P * Q;
+
+    r(Eigen::seqN(0, 2*PQ)) = W_ref * S_global.S11 * csrc;
+    std::cout << "Size of r " << r.size() << '\n';
+    std::cout << "Size of Kx " << Kx.rows() << " " << Kx.cols() << '\n';
+    std::cout << "Size of Ky " << Ky.rows() << " " << Ky.cols() << '\n';
+    std::cout << "Size of Kz_ref " << Kz_ref.size() << '\n';
+
+    r(Eigen::seqN(2*PQ, PQ)) = -(Kx.array() * (r(Eigen::seqN(0, PQ))).array() + Ky.array() * (r(Eigen::seqN(PQ, PQ))).array()).array() / (Kz_ref.array());
+}
+
+void ComputeTransmittedField(const RCWAParams& params, const ScatteringMatrix& S_global, const Vector& csrc, const Vector& Kx, const Vector& Ky, const Vector& Kz_trn, const Matrix& W_trn, Vector& t)
+{
+    /*
+    Function that computes the transmitted field t.
+    */
+    int P = 2 * params.Nx_harmonics + 1;
+    int Q = 2 * params.Ny_harmonics + 1;
+    int PQ = P * Q;
+
+    t(Eigen::seqN(0, 2*PQ)) = W_trn * S_global.S21 * csrc;
+    /*
+    std::cout << "Size of t " << t.size() << '\n';
+    std::cout << "Size of Kx " << Kx.rows() << " " << Kx.cols() << '\n';
+    std::cout << "Size of Ky " << Ky.rows() << " " << Ky.cols() << '\n';
+    std::cout << "Size of Kz_ref " << Kz_trn.size() << '\n';
+    */
+    t(Eigen::seqN(2*PQ, PQ)) = -(Kx.array() * (t(Eigen::seqN(0, PQ))).array() + Ky.array() * (t(Eigen::seqN(PQ, PQ))).array()).array() / (Kz_trn.array());
+}
+
 
 ScatteringMatrix RedhefferProduct(const ScatteringMatrix& A, const ScatteringMatrix& B)
 {

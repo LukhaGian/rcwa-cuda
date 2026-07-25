@@ -46,21 +46,21 @@ int main()
     std::vector<Complex> squared_field = createSquareMatrix1D(Ny, Nx, add_val, square_val);
     Complex er_val(4.0, 0.0);
     std::vector<Complex> er_field(Nx * Ny, er_val); // uniform field of size Nx * Ny
-    //er_field.insert(er_field.end(), squared_field.begin(), squared_field.end()); // insert additional layer --> not so nice, preallocate and slice
+    er_field.insert(er_field.end(), squared_field.begin(), squared_field.end()); // insert additional layer --> not so nice, preallocate and slice
     std::cout << "er_field " << er_field.size() << '\n';
     std::vector<Complex> er{er_field};
     std::cout << "er " << er.size() << '\n';
     Complex ur_val(2.0, 0.0);
     std::vector<Complex> ur_field(Nx * Ny, ur_val); // uniform field of size Nx * Ny
-    //ur_field.insert(ur_field.end(), squared_field.begin(), squared_field.end());
+    ur_field.insert(ur_field.end(), squared_field.begin(), squared_field.end());
     std::vector<Complex> ur{ur_field};
-    //std::vector<Real> t{1.0, 1.0}; // remember brace initialization
+    //std::vector<Real> thickness{1.0, 1.0}; // remember brace initialization
     //int num_layers = 2;
-    std::vector<Real> t{1.0}; // remember brace initialization
+    std::vector<Real> thickness{1.0}; // remember brace initialization
     int num_layers = 1;
     Real Lx = 1.0;
     Real Ly = 1.0;
-    Device device(Nx, Ny, num_layers, Lx, Ly, er, ur, t, Nx_harmonics, Ny_harmonics);
+    Device device(Nx, Ny, num_layers, Lx, Ly, er, ur, thickness, Nx_harmonics, Ny_harmonics);
     //std::cout << device.t.at(0) << '\n';
     //std::cout << device.t.at(1) << '\n';
 
@@ -134,7 +134,13 @@ int main()
 
     Vector csrc(2*PQ);
     ComputeSourceModeCoeff(source, params, k_inc, W_ref, csrc);
-    
+    Vector r = Vector::Zero(3*PQ);
+    ComputeReflectedField(params, S_global, csrc, Kx, Ky, Kz_ref, W_ref, r);
+    std::cout << r << '\n';
+    Vector t = Vector::Zero(3*PQ);
+    ComputeTransmittedField(params, S_global, csrc, Kx, Ky, Kz_trn, W_trn, t);
+    std::cout << '\n';
+    std::cout << t << '\n';
 
     Matrix C = ConvMat(er_field, 0, Nx, Ny, Nx_harmonics, Ny_harmonics);
     //std::cout << C << '\n';
