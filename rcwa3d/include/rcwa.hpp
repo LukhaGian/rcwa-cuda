@@ -13,6 +13,8 @@ using Complex = std::complex<Real>;
 using Matrix = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>; // it is a complex matrix with dynamic size (BY DEFAULT COLUMN MAJOR ORDER)
 using Vector = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
 using Real_Matrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>; // real matrix
+using Real_Vector = Eigen::Matrix<Real, Eigen::Dynamic, 1>; // real vector
+
 
 // ======================================================================================
 
@@ -117,6 +119,11 @@ struct Results
     Real R_tot{}; // total reflection
     Real T_tot{}; // total transmission
     // Note: for energy conservation, R_tot + T_tot = 1
+
+    Results(Real_Matrix R_, Real_Matrix T_, Real R_tot_, Real T_tot_)
+    : R(R_), T(T_), R_tot(R_tot_), T_tot(T_tot_)
+    {
+    }
 };
 
 
