@@ -197,7 +197,7 @@ void ComputeReflectedField(const RCWAParams& params, const ScatteringMatrix& S_g
 void ComputeTransmittedField(const RCWAParams& params, const ScatteringMatrix& S_global, const Vector& csrc, const Vector& Kx, const Vector& Ky, const Vector& Kz_trn, const Matrix& W_trn, Vector& t); // W_trn is considered = I
 
 // 13. Compute Diffraction Efficiencies
-Results ComputeDiffractionEfficiencies(const RCWAParams& params, std::vector<Complex> r, std::vector<Complex> t, const std::vector<Complex>& k_inc, const Matrix& Kz_ref, const Matrix& Kz_trn);
+Results ComputeDiffractionEfficiencies(const RCWAParams& params, const Vector& r, const Vector& t, const std::vector<Complex>& k_inc, const Vector& Kz_ref, const Vector& Kz_trn);
 
 // 14. Output results
 void OutputResults(const Results& results, const RCWAParams& params);
