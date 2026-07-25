@@ -178,23 +178,23 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
 // Update Device matrix
 
 // 8. Compute Reflection Side Connection SMatrix, ie S_ref
-ScatteringMatrix SMatrixReflection(const RCWAParams& params, const Vector& Kx, const Vector& Ky, Vector& Kz_ref, const Matrix& W0, const Matrix& V0);
+ScatteringMatrix SMatrixReflection(const RCWAParams& params, const Vector& Kx, const Vector& Ky, Vector& Kz_ref, const Matrix& W0, const Matrix& V0, Matrix& W_ref);
 
 // 9. Compute Transmission Side Connection SMatrix, ie S_trn
-ScatteringMatrix SMatrixTransmission(const RCWAParams& params, const Vector& Kx, const Vector& Ky, Vector& Kz_trn, const Matrix& W0, const Matrix& V0);
+ScatteringMatrix SMatrixTransmission(const RCWAParams& params, const Vector& Kx, const Vector& Ky, Vector& Kz_trn, const Matrix& W0, const Matrix& V0, Matrix& W_trn);
 
 // 10. Compute Global SMatrix, S_global = S_ref x S_device x S_trn
 // call RedhefferProduct() to combine the S-matrices of ref + device + trn into global
 
-// 11. Compute Source parameters (source field)
-// compute esrc and csrc 
-void ComputeSourceField(const Source& source, const RCWAParams& params, const std::vector<Complex>& k_inc, std::vector<Complex>& esrc, std::vector<Complex>& csrc);
+// 11. Compute Mode coefficients of the Source
+// compute csrc 
+void ComputeSourceModeCoeff(const Source& source, const RCWAParams& params, const std::vector<Complex>& k_inc, const Matrix& W_ref, Vector& csrc);
 
 // 12. Compute Reflected and Transmitted Fields
 // reflected field r
-std::vector<Complex> ComputeReflectedField(const ScatteringMatrix& S_global, const std::vector<Complex>& csrc, const Matrix& Kx, const Matrix& Ky, const Matrix& Kz_ref); // W_ref is considered = I
+void ComputeReflectedField(const ScatteringMatrix& S_global, const std::vector<Complex>& csrc, const Matrix& Kx, const Matrix& Ky, const Vector& Kz_ref, const Matrix& W_ref, std::vector<Complex>& r); // W_ref is considered = I
 // transmitted field t
-std::vector<Complex> ComputeTransmittedField(const ScatteringMatrix& S_global, const std::vector<Complex>& csrc, const Matrix& Kx, const Matrix& Ky, const Matrix& Kz_trn); // W_trn is considered = I
+void ComputeTransmittedField(const ScatteringMatrix& S_global, const std::vector<Complex>& csrc, const Matrix& Kx, const Matrix& Ky, const Vector& Kz_trn, const Matrix& W_trn, std::vector<Complex>& t); // W_trn is considered = I
 
 // 13. Compute Diffraction Efficiencies
 Results ComputeDiffractionEfficiencies(const RCWAParams& params, std::vector<Complex> r, std::vector<Complex> t, const std::vector<Complex>& k_inc, const Matrix& Kz_ref, const Matrix& Kz_trn);

@@ -311,7 +311,7 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     return ScatteringMatrix(S11, S12, S12, S11);
 }
 
-ScatteringMatrix SMatrixReflection(const RCWAParams& params, const Vector& Kx, const Vector& Ky, Vector& Kz_ref, const Matrix& W0, const Matrix& V0)
+ScatteringMatrix SMatrixReflection(const RCWAParams& params, const Vector& Kx, const Vector& Ky, Vector& Kz_ref, const Matrix& W0, const Matrix& V0, Matrix& W_ref)
 {
     /*
     Function that computes the Reflection side Connection S-Matrix
@@ -331,7 +331,7 @@ ScatteringMatrix SMatrixReflection(const RCWAParams& params, const Vector& Kx, c
     //std::cout << Q <<'\n';
     Q_ref /= params.ur_ref;
     std::cout << "Q_ref " << double((Q_ref.array() != 0.0).count()) / Q_ref.size() << '\n';
-    Matrix W_ref = Matrix::Identity(2*block_size, 2*block_size);
+    W_ref = Matrix::Identity(2*block_size, 2*block_size);
 
     Vector lambda_ref(2*block_size);
     lambda_ref << -1i*Kz_ref, -1i*Kz_ref;
@@ -373,7 +373,7 @@ ScatteringMatrix SMatrixReflection(const RCWAParams& params, const Vector& Kx, c
 }
 
 
-ScatteringMatrix SMatrixTransmission(const RCWAParams& params, const Vector& Kx, const Vector& Ky, Vector& Kz_trn, const Matrix& W0, const Matrix& V0)
+ScatteringMatrix SMatrixTransmission(const RCWAParams& params, const Vector& Kx, const Vector& Ky, Vector& Kz_trn, const Matrix& W0, const Matrix& V0, Matrix& W_trn)
 {
     /*
     Function that computes the Reflection side Connection S-Matrix
@@ -393,7 +393,7 @@ ScatteringMatrix SMatrixTransmission(const RCWAParams& params, const Vector& Kx,
     //std::cout << Q <<'\n';
     Q_trn /= params.ur_trn;
     std::cout << "Q_trn " << double((Q_trn.array() != 0.0).count()) / Q_trn.size() << '\n';
-    Matrix W_trn = Matrix::Identity(2*block_size, 2*block_size);
+    W_trn = Matrix::Identity(2*block_size, 2*block_size);
 
     Vector lambda_trn(2*block_size);
     lambda_trn << 1i*Kz_trn, 1i*Kz_trn;
@@ -425,6 +425,54 @@ ScatteringMatrix SMatrixTransmission(const RCWAParams& params, const Vector& Kx,
     Matrix S22 = - A_i2_inv_B_i2;
 
     return ScatteringMatrix(S11, S12, S21, S22);
+}
+
+
+void ComputeSourceModeCoeff(const Source& source, const RCWAParams& params, const std::vector<Complex>& k_inc, const Matrix& W_ref, Vector& csrc)
+{
+    /*
+    Function that computes the Source parameters and the mode coefficents of the source, csrc
+    */
+
+    // Compute directions of TE and TM polarization
+    // a_TE = (n x k_inc) / |n x k_inc|,
+    // a_TM = (k_inc x a_TE) / |k_inc x a_TE|,
+    // where n = a_z = (0, 0, 1).
+    // In general, a x b = (a_1*b_2 - a_2*b_1, a_2*b0 - a_0*b_2, a_0*b_1 - a_1*b_0).
+    // They are 3D, perhaps better to use fixed dimension declaration and allocation
+    Vector a_TE(3);
+    a_TE << -k_inc.at(1), k_inc.at(0), 0.0 + 0.0i;
+    a_TE.normalize();
+    Vector a_TM(3);
+    a_TM << -k_inc.at(2) * a_TE(1), k_inc.at(2) * a_TE(0), k_inc.at(0) * a_TE(1) - k_inc.at(1) * a_TE(0);
+    a_TM.normalize();
+
+    // Compute Polarization Vector
+    Vector Pol = source.pte * a_TE + source.ptm * a_TM;
+    Pol.normalize(); // Ensure normalization of the vector
+
+    // Construct delta vector
+    int P = 2 * params.Nx_harmonics + 1;
+    int Q = 2 * params.Ny_harmonics + 1;
+    int PQ = P * Q;
+    //Vector delta_0 = Vector::Zero(PQ);
+    //delta_0(PQ/2) = Complex(1.0, 0.0);
+
+    //std::cout << delta_0 << '\n';
+
+    // Build directly Source Field esrc
+    Vector esrc = Vector::Zero(2*PQ);
+    esrc(PQ/2) = Pol(0); // x component of electric field polarization vector
+    esrc(PQ/2 + PQ) = Pol(1); // y component of electric field polarization vector
+    std::cout << '\n';
+    std::cout << esrc << '\n';
+    std::cout << '\n';
+
+    // mode coefficients of the source
+    csrc = W_ref.lu().solve(esrc);
+
+    std::cout << csrc << '\n';
+
 }
 
 
