@@ -12,6 +12,7 @@ using Real = double;
 using Complex = std::complex<Real>;
 using Matrix = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>; // it is a complex matrix with dynamic size (BY DEFAULT COLUMN MAJOR ORDER)
 using Vector = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
+using Real_Matrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>; // real matrix
 
 // ======================================================================================
 
@@ -111,8 +112,8 @@ struct RCWAParams
 // struct that defines the RCWA results, i.e. reflection and transmission
 struct Results
 {
-    std::vector<Real> R{}; // reflection coefficients for each diffraction order
-    std::vector<Real> T{}; // transmission coefficients for each diffraction order
+    Real_Matrix R{}; // reflection coefficients for each diffraction order
+    Real_Matrix T{}; // transmission coefficients for each diffraction order
     Real R_tot{}; // total reflection
     Real T_tot{}; // total transmission
     // Note: for energy conservation, R_tot + T_tot = 1
