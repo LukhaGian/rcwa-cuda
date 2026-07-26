@@ -492,7 +492,7 @@ void ComputeSourceModeCoeff(const Source& source, const RCWAParams& params, cons
     a_TM.normalize();
 
     // Compute Polarization Vector
-    Vec_3d Pol{source.pte * a_TE + source.ptm * a_TM};
+    Vec_3d Pol = source.pte * a_TE + source.ptm * a_TM;
     std::cout << "POLARIZATION VECTOR" <<'\n';
     std::cout << Pol <<'\n';
     Pol.normalize(); // Ensure normalization of the vector
@@ -509,7 +509,7 @@ void ComputeSourceModeCoeff(const Source& source, const RCWAParams& params, cons
     //std::cout << delta_0 << '\n';
 
     // Build directly Source Field esrc
-    Vector esrc{Vector::Zero(2*PQ)};
+    Vector esrc = Vector::Zero(2*PQ);
     esrc(PQ/2) = Pol(0); // x component of electric field polarization vector
     esrc(PQ/2 + PQ) = Pol(1); // y component of electric field polarization vector
     std::cout << '\n';
