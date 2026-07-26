@@ -14,6 +14,7 @@ using Matrix = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>; // it is 
 using Vector = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
 using Real_Matrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>; // real matrix
 using Real_Vector = Eigen::Matrix<Real, Eigen::Dynamic, 1>; // real vector
+using Vec_3d = Eigen::Matrix<Complex, 3, 1>; // 3d complex vector
 
 
 // ======================================================================================
@@ -207,8 +208,6 @@ void ComputeTransmittedField(const RCWAParams& params, const ScatteringMatrix& S
 // 13. Compute Diffraction Efficiencies
 Results ComputeDiffractionEfficiencies(const RCWAParams& params, const Vector& r, const Vector& t, const std::vector<Complex>& k_inc, const Vector& Kz_ref, const Vector& Kz_trn);
 
-// 14. Output results
-void OutputResults(const Results& results, const RCWAParams& params);
 
 // MOVE TO ADDITIONAL?
 // Redheffer Product A x B
