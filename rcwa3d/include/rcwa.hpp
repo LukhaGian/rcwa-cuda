@@ -223,18 +223,6 @@ void MeshGrid(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& x, const Eigen::Ma
     Y = y.replicate(1, x.size());
 }
 
-// conj_unsigned_zero function, template
-/*
-template <typename T>
-std::complex<T> conj_unsigned_zero(const std::complex<T>& z) {
-    // Function that computes the conjugate of a complex number, avoiding IEEE 754 standard for std::conj()
-    // if z = (1.0, 0.0) ==> std::conj(z) = (1.0, -0.0)
-    // If the imaginary part is exactly 0 (positive or negative), keep it 0.0
-    // Otherwise, negate it normally.
-    T imag_part = (z.imag() == T(0.0)) ? T(0.0) : -z.imag();
-    return {z.real(), imag_part};
-}
-*/    
 
 struct EigenvalSolverResults
 {
