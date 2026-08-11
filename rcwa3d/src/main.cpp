@@ -82,12 +82,19 @@ int main()
 
     std::vector<Complex> uniform_er_field(Ny * Nx, Complex(6.0, 0.0));
     std::vector<Complex> uniform_ur_field(Ny * Nx, Complex(1.0, 0.0));
-    std::vector<Real> thickness{0.5, 0.3}; // remember brace initialization
+    std::vector<Real> thickness{0.5, 0.3, 0.15}; // remember brace initialization
+
+    std::vector<Complex> er_squared = createSquareMatrix1D(Ny, Nx, Complex(2.0, 0.0), Complex(6.5, 0.0));
+    std::vector<Complex> ur_squared = createSquareMatrix1D(Ny, Nx, Complex(2.5, 0.0), Complex(3.5, 0.0));
     
     er_field.insert(er_field.end(), uniform_er_field.begin(), uniform_er_field.end());
+    er_field.insert(er_field.end(), er_squared.begin(), er_squared.end());
     std::vector<Complex> er{er_field};
     ur_field.insert(ur_field.end(), uniform_ur_field.begin(), uniform_ur_field.end());
+    ur_field.insert(ur_field.end(), er_squared.begin(), er_squared.end());
     std::vector<Complex> ur{ur_field};
+
+    
     Device device(Nx, Ny, thickness.size(), Lx, Ly, er, ur, thickness, Nx_harmonics, Ny_harmonics);
 
     // Build the source
@@ -112,13 +119,16 @@ int main()
     int P = 2 * params.Nx_harmonics + 1;
     int Q = 2 * params.Ny_harmonics + 1;
     int PQ = P * Q;
-    //std::cout << params.er_ref << '\n';
+
     std::vector<Complex> k_inc(3, Complex(0.0, 0.0));
-    Vector Kx, Ky, Kz_ref, Kz_trn; ////
-    Matrix W0(2*PQ, 2*PQ);
-    Matrix V0(2*PQ, 2*PQ);
-    Matrix W_ref(2*PQ, 2*PQ);
-    Matrix W_trn(2*PQ, 2*PQ);
+    Vector Kx = Vector::Zero(PQ);
+    Vector Ky = Vector::Zero(PQ);
+    Vector Kz_ref = Vector::Zero(PQ);
+    Vector Kz_trn = Vector::Zero(PQ);
+    Matrix W0 = Matrix::Zero(2*PQ, 2*PQ); // It is a waste since some matrices are very sparse ======================= 
+    Matrix V0 = Matrix::Zero(2*PQ, 2*PQ);
+    Matrix W_ref = Matrix::Zero(2*PQ, 2*PQ);
+    Matrix W_trn = Matrix::Zero(2*PQ, 2*PQ);
 
 
 
@@ -151,15 +161,6 @@ int main()
         S_layer = SMatrixLayer(layer, device, source, params, Kx, Ky, W0, V0);
       
         S_device = RedhefferProduct(S_device, S_layer);
-        /*
-        std::cout << S_device.S11 << '\n';
-        std::cout << '\n';
-        std::cout << S_device.S12 << '\n';
-        std::cout << '\n';
-        std::cout << S_device.S21 << '\n';
-        std::cout << '\n';
-        std::cout << S_device.S22 << '\n';
-        */
         
     }
     
@@ -169,15 +170,6 @@ int main()
     ScatteringMatrix S_global = RedhefferProduct(S_ref, S_device);
     S_global = RedhefferProduct(S_global, S_trn);
 
-    /*
-    std::cout << S_global.S11 << '\n';
-    std::cout << '\n';
-    std::cout << S_global.S12 << '\n';
-    std::cout << '\n';
-    std::cout << S_global.S21 << '\n';
-    std::cout << '\n';
-    std::cout << S_global.S22 << '\n';
-    */
 
     Vector csrc(2*PQ);
     ComputeSourceModeCoeff(source, params, k_inc, W_ref, csrc);
@@ -196,34 +188,6 @@ int main()
     std::cout << results.T << '\n';
     std::cout << results.R_tot << "+" << results.T_tot << '\n';
     std::cout << results.R_tot + results.T_tot << '\n';
-
-    
-
-    /*
-    // Meshgrid testing
-    Vector k_x_tilde = Vector::LinSpaced(2*params.Nx_harmonics + 1, -params.Nx_harmonics, params.Nx_harmonics);
-    std::cout << k_x_tilde << '\n';
-    Vector k_y_tilde = Vector::LinSpaced(2*params.Ny_harmonics + 1, -params.Ny_harmonics, params.Ny_harmonics);
-    std::cout << k_y_tilde << '\n';
-    Matrix Kx_tilde = Matrix::Zero(k_y_tilde.size(), k_x_tilde.size());
-    Matrix Ky_tilde = Matrix::Zero(k_y_tilde.size(), k_x_tilde.size());
-    MeshGrid(k_x_tilde, k_y_tilde, Kx_tilde, Ky_tilde);
-    std::cout << Kx_tilde << '\n';
-    std::cout << Ky_tilde << '\n';
-    */
-    /*
-    Eigen::Matrix2d Z;
-    Z << 0,-1,1,0;
-
-    // Compute eigenvalues and eigenvectors
-    Eigen::EigenSolver<Eigen::Matrix2d> solver(Z);
-
-    if (solver.info() != Eigen::Success) abort();
-
-    // Output complex results
-    std::cout << "Eigenvalues:\n" << solver.eigenvalues() << "\n\n";
-    std::cout << "Eigenvectors:\n" << solver.eigenvectors() << "\n";
-    */
 
     return 0;
 }
