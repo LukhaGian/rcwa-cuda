@@ -5,44 +5,16 @@
 #include <Eigen/Dense>
 #define _USE_MATH_DEFINES
 #include <cmath>
-//#include <iostream>
 
 using namespace std::complex_literals; // Enables the '1i' literal
 using Real = double;
 using Complex = std::complex<Real>;
-using Matrix = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>; // it is a complex matrix with dynamic size (BY DEFAULT COLUMN MAJOR ORDER)
+using Matrix = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>; // it is a complex matrix with dynamic size (by default column-major)
 using Vector = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
 using Real_Matrix = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>; // real matrix
 using Real_Vector = Eigen::Matrix<Real, Eigen::Dynamic, 1>; // real vector
 using Vec_3d = Eigen::Matrix<Complex, 3, 1>; // 3d complex vector
 
-
-// ======================================================================================
-
-// Safe complex square root, it sanitises -0 imaginary part before sqrt
-// to avoid branch cut issues from IEEE 754 signed zero
-inline Complex unsigned_sqrt(Complex z)
-{
-    if (z.imag() == 0.0) z = Complex(z.real(), 0.0);
-    return std::sqrt(z);
-}
-
-// Element-wise safe sqrt for MatrixXcd
-//inline Matrix unsigned_sqrt(const Matrix& M)
-//{
-//    return M.unaryExpr([](Complex z) {return unsigned_sqrt(z);});
-//}
-
-// Eigen expression version: it accepts Matrix, Vector, Array and lazy expressions
-template<typename Derived>
-inline auto unsigned_sqrt(const Eigen::EigenBase<Derived>& expr)
-{
-    return expr.derived().unaryExpr([](Complex z) -> Complex {
-        if (z.imag() == 0.0) z = Complex(z.real(), 0.0);
-        return std::sqrt(z);
-    });
-}
-// ======================================================================================
 
 // struct that defines the Device properties
 struct Device 
@@ -50,23 +22,17 @@ struct Device
     // grid resolution per layer
     int Nx{}; // spatial grid points along X axis (columns)
     int Ny{}; // spatial grid points along Y axis (rows)
-    int num_layers{};  // number of layers M
-    Real Lx{};        // unit cell dimensions
-    Real Ly{};
-    // 3D arrays: er[iy][ix][layer] stored as flat vector er[layer * Nx * Ny + iy * Nx + ix] (row-major order) --> be careful and TBD
-
+    int num_layers{}; // number of layers M
+    Real Lx{}; // unit cell dimension along X axis
+    Real Ly{}; // unit cell dimension along Y axis
+    // 3D arrays: er[iy][ix][layer] stored as flat vector er[layer * Nx * Ny + iy * Nx + ix] (row-major order)
     // spatial arrays
     std::vector<Complex> er{};  // permittivity Ny × Nx x num_layers
     std::vector<Complex> ur{};  // permeability Ny × Nx x num_layers
     std::vector<Real> t{};   // thickness per layer, size num_layers
-
-    // convolution space arrays: TBD if 3d Tensor solution is better or std::vector<Matrix> suffices (iterating over layers)
+    // convolution space arrays
     std::vector<Matrix> erc{}; // convolution of perimittivity er num_layers x PQ × PQ
     std::vector<Matrix> urc{}; // convolution of permeability ur num_layers x PQ × PQ
-
-    Device() : Nx(1), Ny(1), num_layers(1), Lx(1.0), Ly(1.0) // Default constructor, add the remaining default entries for the field DONT USE IT FOR NOW
-    {
-    }
 
     Device(int Nx_, int Ny_, int num_layers_, Real Lx_, Real Ly_, const std::vector<Complex>& er_, 
         const std::vector<Complex>& ur_, const std::vector<Real>& t_, int Nx_harmonics_, int Ny_harmonics_) 
@@ -81,12 +47,11 @@ struct Device
 struct Source
 {
     Real lambda0{}; // wavelength in vacuum
-    Real k0{};    // wave number in vacuum = 2pi/lambda0
+    Real k0{}; // wave number in vacuum = 2pi/lambda0
     Real theta{}; // polar angle of incidence
     Real phi{}; // azimuthal angle of incidence
-    //
-    Real pte{};       // TE polarisation amplitude
-    Real ptm{};       // TM polarisation amplitude
+    Real pte{}; // TE polarisation amplitude
+    Real ptm{}; // TM polarisation amplitude
 
     Source(Real lambda0_, Real theta_, Real phi_, Real pte_, Real ptm_) 
     : lambda0(lambda0_), k0(2 * M_PI / lambda0_), theta(theta_), phi(phi_), pte(pte_), ptm(ptm_)
@@ -99,11 +64,10 @@ struct RCWAParams
 {
     int Nx_harmonics{}; // number of harmonics along X axis
     int Ny_harmonics{}; // number of harmonics along Y axis
-    // Support for non lossless materials
-    Complex er_ref{};    // permittivity of reflection region (superstrate)
-    Complex ur_ref{};    // permeability of reflection region
-    Complex er_trn{};    // permittivity of transmission region (substrate)
-    Complex ur_trn{};    // permeability of transmission region
+    Complex er_ref{}; // permittivity of reflection region (superstrate)
+    Complex ur_ref{}; // permeability of reflection region
+    Complex er_trn{}; // permittivity of transmission region (substrate)
+    Complex ur_trn{}; // permeability of transmission region
 
     RCWAParams(int Nx_harmonics_, int Ny_harmonics_, Complex er_ref_, Complex ur_ref_, Complex er_trn_, Complex ur_trn_)
     : Nx_harmonics(Nx_harmonics_), Ny_harmonics(Ny_harmonics_), er_ref(er_ref_), ur_ref(ur_ref_), er_trn(er_trn_), ur_trn(ur_trn_)
@@ -137,28 +101,10 @@ struct ScatteringMatrix
     Matrix S21{}; // transmission from right to left
     Matrix S22{}; // reflection from the right
     
-    ScatteringMatrix(Matrix S11_, Matrix S12_, Matrix S21_, Matrix S22_) : S11(S11_), S12(S12_), S21(S21_), S22(S22_)
+    ScatteringMatrix(Matrix S11_, Matrix S12_, Matrix S21_, Matrix S22_)
+    : S11(S11_), S12(S12_), S21(S21_), S22(S22_)
     {
     }
-    /*
-    ScatteringMatrix() = default;
-
-    ScatteringMatrix(const Matrix& a, const Matrix& b,
-                     const Matrix& c, const Matrix& d)
-        : S11(a), S12(b), S21(c), S22(d) {
-            std::cout << "constructor\n";
-        }
-
-    ScatteringMatrix(const ScatteringMatrix& other) : S11(other.S11), S12(other.S12), S21(other.S21), S22(other.S22) {
-        std::cout << "copy\n";
-    }
-
-    ScatteringMatrix(ScatteringMatrix&& other) noexcept
-        : S11(std::move(other.S11)), S12(std::move(other.S12)),
-          S21(std::move(other.S21)), S22(std::move(other.S22)) {
-        std::cout << "move\n";
-    }
-    */
 };
 
 
@@ -182,7 +128,6 @@ ScatteringMatrix SMatrixInit(int Nx_harmonics, int Ny_harmonics);
 
 // 7. Iteration per layer (build eigen value problem per layer), compute the S-matrix for each layer, and combine them using Redheffer product wrt S_device
 ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& source, const RCWAParams& params, const Vector& Kx, const Vector& Ky, const Matrix& W0, const Matrix& V0);
-// remember to .resize(0,0) to free the memory when the S-matrix is no longer needed, e.g. after Redheffer product, OR use blocks in main for sequential
 
 // Update Device matrix
 
@@ -209,16 +154,44 @@ void ComputeTransmittedField(const RCWAParams& params, const ScatteringMatrix& S
 Results ComputeDiffractionEfficiencies(const RCWAParams& params, const Vector& r, const Vector& t, const std::vector<Complex>& k_inc, const Vector& Kz_ref, const Vector& Kz_trn);
 
 
-// MOVE TO ADDITIONAL?
+// Utility functions
+// ======================================================================================
+
 // Redheffer Product A x B
 ScatteringMatrix RedhefferProduct(const ScatteringMatrix& A, const ScatteringMatrix& B); 
-// remember to use std::move() to avoid copying the resulting S-matrix in place AND .resize(0,0) to free the memory when the S-matrix is no longer needed, e.g. after Redheffer product
+
+
+inline Complex unsigned_sqrt(Complex z)
+{
+    /*
+    Safe complex square root, it sanitises -0 imaginary part before sqrt
+    to avoid branch cut issues from IEEE 754 signed zero
+    */
+    if (z.imag() == 0.0) z = Complex(z.real(), 0.0);
+    return std::sqrt(z);
+}
+
+
+template<typename Derived>
+inline auto unsigned_sqrt(const Eigen::EigenBase<Derived>& expr)
+{
+    /*
+    Eigen expression version: it accepts Matrix, Vector, Array and lazy expressions.
+    It returns an expression that computes the unsigned square root of each element in the input expression.
+    */
+    return expr.derived().unaryExpr([](Complex z) -> Complex {
+        if (z.imag() == 0.0) z = Complex(z.real(), 0.0);
+        return std::sqrt(z);
+    });
+}
+
 
 // MeshGrid function, template
 template <typename Scalar>
 void MeshGrid(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& x, const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& y,
               Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& X, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& Y)
 {
+    // Create meshgrid matrices X and Y from vectors x and y
     X = x.transpose().replicate(y.size(), 1);
     Y = y.replicate(1, x.size());
 }
@@ -226,8 +199,11 @@ void MeshGrid(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& x, const Eigen::Ma
 
 struct EigenvalSolverResults
 {
+    // Struct to hold the results of the eigenvalue solver
     Vector eigenvalues{};
     Matrix eigenvectors{};
 };
 
-EigenvalSolverResults extraction(Eigen::ComplexEigenSolver<Matrix>&& solver);
+EigenvalSolverResults extraction(Eigen::ComplexEigenSolver<Matrix>&& solver); // Function to extract eigenvalues and eigenvectors from a ComplexEigenSolver object, using move semantics to avoid unnecessary copies
+
+// ======================================================================================
