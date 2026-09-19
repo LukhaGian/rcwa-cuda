@@ -7,8 +7,8 @@ int main()
     int Nx = 2048; // make sure it's always even
     int Ny = 2048;
 
-    int Nx_harmonics = 5;
-    int Ny_harmonics = 5;
+    int Nx_harmonics = 10;
+    int Ny_harmonics = 10;
 
 
     Real Lx = 1.0; // unit cell dimension along X axis
@@ -16,7 +16,7 @@ int main()
 
     // Build the device layers
     std::vector<std::vector<Complex>> er_layers = 
-        {
+    {
             layer::triangle_pattern(Nx, Ny, Lx, Ly),
             layer::x_pattern(Nx, Ny, Lx, Ly),
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
@@ -25,9 +25,9 @@ int main()
             layer::uniform(Nx, Ny, Complex(4.0, 0.0)),
             layer::square_pattern(Nx, Ny, Complex(7.0, 0.0), Complex(1.0, 0.0))
 
-        };
+    };
     std::vector<std::vector<Complex>> ur_layers = 
-        {
+    {
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
@@ -36,12 +36,12 @@ int main()
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
             layer::uniform(Nx, Ny, Complex(1.0, 0.0))
 
-        };
+    };
     std::vector<Complex> er = layer::stack(er_layers);
     std::vector<Complex> ur = layer::stack(ur_layers);
 
 
-    std::vector<Real> thickness{0.5, 0.3, 0.4, 0.6, 0.1, 0.25};
+    std::vector<Real> thickness{1.5, 0.3, 2.4, 2.6, 1.1, 0.25};
 
     // Build the device
     Device device(Nx, Ny, thickness.size(), Lx, Ly, er, ur, thickness, Nx_harmonics, Ny_harmonics);
