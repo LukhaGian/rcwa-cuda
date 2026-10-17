@@ -12,8 +12,8 @@ __global__ void helloFromGPU() {
 int main()
 {
     // spatial grid for the layers
-    int Nx = 5; // make sure it's always even
-    int Ny = 5;
+    int Nx = 6; // make sure it's always even
+    int Ny = 6;
 
     int Nx_harmonics = 2;
     int Ny_harmonics = 2;
@@ -135,11 +135,12 @@ int main()
     int idist = Nx*Ny;
     int ostride = 1;
     int odist = Nx*Ny;
+
+    // Create a cuFFT plan 
     cufftPlanMany(&plan, rank, rank_dim, inembed, istride, idist, onembed, ostride, odist, CUFFT_Z2Z, thickness.size());
 
-    cufftExecZ2Z(plan, d_er_ptr, d_er_ptr, CUFFT_FORWARD); // Launched all on default stream, also second cuffExec--> merge them
-    normalizeFFT<<<(Nx*Ny*thickness.size() + 255)/256, 256>>>(d_er_ptr, Nx, Ny, thickness.size());
-    cufftExecZ2Z(plan, d_ur_ptr, d_ur_ptr, CUFFT_FORWARD);
+    // Perform convolution
+    convMat_cu(plan, d_er_ptr, d_ur_ptr, Nx, Ny, thickness.size());
 
     cudaDeviceSynchronize();
 
@@ -151,12 +152,14 @@ int main()
     cudaFree(d_ur_ptr);
 
     std::cout << "Size of er " << er.size() << '\n'; /////////////////// To Be checked
+    /*
     for (size_t i = 0; i < Nx*Ny*thickness.size(); ++i) 
     {
         if (i % (Nx*Ny) == 0)
             std::cout << "Reached end of layer" << '\n';
         std::cout << er[i] << '\n';
     }
+    */
 
     /*
     // Test
