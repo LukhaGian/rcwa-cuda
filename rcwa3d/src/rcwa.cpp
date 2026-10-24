@@ -231,8 +231,10 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     // Assemble S matrix
     // Potentially inefficient, check if there is a better way to do this
     auto A_i0_lu = A_i0.partialPivLu();
-    auto partial_prod_lu = (A_i0 - X_i * B_i0 * A_i0_lu.solve(X_i) * B_i0).partialPivLu();
-    Matrix S11 = partial_prod_lu.solve(X_i * B_i0 * A_i0_lu.solve(X_i) * A_i0 - B_i0);
+    Matrix A_i0_X_i = A_i0_lu.solve(X_i);
+    Matrix mid_Mat = A_i0 - X_i * B_i0 * A_i0_X_i * B_i0;
+    auto partial_prod_lu = mid_Mat.partialPivLu();
+    Matrix S11 = partial_prod_lu.solve(X_i * B_i0 * A_i0_X_i * A_i0 - B_i0);
     Matrix S12 = partial_prod_lu.solve(X_i) * (A_i0 - B_i0 * A_i0_lu.solve(B_i0));
 
     return ScatteringMatrix(S11, S12, S12, S11);
