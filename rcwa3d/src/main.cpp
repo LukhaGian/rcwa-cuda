@@ -4,6 +4,18 @@
 
 int main()
 {
+     #if defined(EIGEN_USE_BLAS)
+        std::cout << "Eigen is configured to use external BLAS!\n";
+    #else
+        std::cout << "Eigen is NOT using external BLAS.\n";
+    #endif
+
+    #if defined(EIGEN_USE_LAPACKE)
+        std::cout << "Eigen is configured to use LAPACKE!\n";
+    #else
+        std::cout << "Eigen is NOT using LAPACKE.\n";
+    #endif
+
     int Nx = 2048; // make sure it's always even
     int Ny = 2048;
 
@@ -17,6 +29,7 @@ int main()
     // Build the device layers
     std::vector<std::vector<Complex>> er_layers = 
     {
+            /*
             layer::triangle_pattern(Nx, Ny, Lx, Ly),
             layer::x_pattern(Nx, Ny, Lx, Ly),
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
@@ -24,14 +37,23 @@ int main()
             layer::y_pattern(Nx, Ny, Lx, Ly),
             layer::uniform(Nx, Ny, Complex(4.0, 0.0)),
             layer::square_pattern(Nx, Ny, Complex(7.0, 0.0), Complex(1.0, 0.0))
+            */
+            layer::triangle_pattern(Nx, Ny, Lx, Ly),
+            layer::x_pattern(Nx, Ny, Lx, Ly),
+            layer::uniform(Nx, Ny, Complex(1.0, 0.0))
 
     };
     std::vector<std::vector<Complex>> ur_layers = 
     {
+            /*
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
+            layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
+            layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
+            layer::uniform(Nx, Ny, Complex(1.0, 0.0))
+            */
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
             layer::uniform(Nx, Ny, Complex(1.0, 0.0))
@@ -41,7 +63,8 @@ int main()
     std::vector<Complex> ur = layer::stack(ur_layers);
 
 
-    std::vector<Real> thickness{1.5, 0.3, 2.4, 2.6, 1.1, 0.25};
+    //std::vector<Real> thickness{1.5, 0.3, 2.4, 2.6, 1.1, 0.25};
+    std::vector<Real> thickness{1.5, 0.3, 2.4};
 
     // Build the device
     Device device(Nx, Ny, thickness.size(), Lx, Ly, er, ur, thickness, Nx_harmonics, Ny_harmonics);
