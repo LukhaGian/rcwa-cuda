@@ -33,8 +33,9 @@ target_include_directories(rcwa_main PRIVATE
 # Compiler optimization flags
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(rcwa_main PRIVATE
-        -O2 # Moderate optimization
+        -O3 # Max optimization
         -march=native # Enable CPU-specific SIMD instructions
+        #-ffast-math # Allow aggressive floating-point optimizations, not convenient for scientific computing
     )
 else()
     target_compile_options(rcwa_main PRIVATE -O2) # Fallback for non-GCC/Clang compilers
