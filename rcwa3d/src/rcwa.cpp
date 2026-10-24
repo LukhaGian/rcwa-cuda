@@ -38,6 +38,7 @@ Matrix ConvMat(const std::vector<Complex>& field, int layer, int Nx, int Ny, int
 
     // Normalization of the FFT
     F /= static_cast<Real>(Nx * Ny);
+    //std::cout << F << '\n';
 
     // FFT shift to center the zero frequency component
     Matrix F_shift(Ny, Nx);
@@ -184,9 +185,9 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     Matrix P_i = Matrix::Zero(2*PQ, 2*PQ);
     //                             TO BE SUBSTITUTED WITH NO BOUND CHECK [], faster
     //                                                  view of Kx creates a temporary full dense matrix ==> to be checked if it is the best way to do it
-    Matrix erc_inv_Kx = device.erc.at(layer).lu().solve(Kx.asDiagonal().toDenseMatrix()); // do lu factorization only once
+    Matrix erc_inv_Kx = device.erc.at(layer).partialPivLu().solve(Kx.asDiagonal().toDenseMatrix()); // do lu factorization only once
     std::cout << "erc_inv_Kx " << double((erc_inv_Kx.array() != 0.0).count()) / erc_inv_Kx.size() << '\n';
-    Matrix erc_inv_Ky = device.erc.at(layer).lu().solve(Ky.asDiagonal().toDenseMatrix());
+    Matrix erc_inv_Ky = device.erc.at(layer).partialPivLu().solve(Ky.asDiagonal().toDenseMatrix());
     std::cout << "erc_inv_Ky " << double((erc_inv_Ky.array() != 0.0).count()) / erc_inv_Ky.size() << '\n';
     // P_i
     P_i.block(0, 0, PQ, PQ) = Kx.asDiagonal() * erc_inv_Ky; // top left
@@ -196,8 +197,8 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     std::cout << "P_i " << double((P_i.array() != 0.0).count()) / P_i.size() << '\n';
     // Q_i
     Matrix Q_i = Matrix::Zero(2*PQ, 2*PQ);
-    Matrix urc_inv_Kx = device.urc.at(layer).lu().solve(Kx.asDiagonal().toDenseMatrix());
-    Matrix urc_inv_Ky = device.urc.at(layer).lu().solve(Ky.asDiagonal().toDenseMatrix());
+    Matrix urc_inv_Kx = device.urc.at(layer).partialPivLu().solve(Kx.asDiagonal().toDenseMatrix());
+    Matrix urc_inv_Ky = device.urc.at(layer).partialPivLu().solve(Ky.asDiagonal().toDenseMatrix());
     Q_i.block(0, 0, PQ, PQ) = Kx.asDiagonal() * urc_inv_Ky;
     Q_i.block(0, PQ, PQ, PQ) = device.erc.at(layer) - Kx.asDiagonal() * urc_inv_Kx;
     Q_i.block(PQ, 0, PQ, PQ) = Ky.asDiagonal() * urc_inv_Ky - device.erc.at(layer);
@@ -221,16 +222,16 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
         V_i.col(j) /= lambda(j); // potential division by 0...
     }
 
-    Matrix W_i_inv_W0 = W_i.lu().solve(W0);
-    Matrix V_i_inv_V0 = V_i.lu().solve(V0);
+    Matrix W_i_inv_W0 = W_i.partialPivLu().solve(W0);
+    Matrix V_i_inv_V0 = V_i.partialPivLu().solve(V0);
     Matrix A_i0 = W_i_inv_W0  + V_i_inv_V0;
     Matrix B_i0 = W_i_inv_W0 - V_i_inv_V0;
     Matrix X_i = (-source.k0 * device.t.at(layer) * lambda).exp().matrix().asDiagonal(); // Matrix Exponential, THIS IS A FULL MATRIX --> INEFFICIENT
 
     // Assemble S matrix
     // Potentially inefficient, check if there is a better way to do this
-    auto A_i0_lu = A_i0.lu();
-    auto partial_prod_lu = (A_i0 - X_i * B_i0 * A_i0_lu.solve(X_i) * B_i0).lu();
+    auto A_i0_lu = A_i0.partialPivLu();
+    auto partial_prod_lu = (A_i0 - X_i * B_i0 * A_i0_lu.solve(X_i) * B_i0).partialPivLu();
     Matrix S11 = partial_prod_lu.solve(X_i * B_i0 * A_i0_lu.solve(X_i) * A_i0 - B_i0);
     Matrix S12 = partial_prod_lu.solve(X_i) * (A_i0 - B_i0 * A_i0_lu.solve(B_i0));
 
@@ -267,17 +268,17 @@ ScatteringMatrix SMatrixReflection(const RCWAParams& params, const Vector& Kx, c
         V_ref.col(j) = Q_ref.col(j) / lambda_ref(j); // potential division by 0...
     }
 
-    Matrix W0_inv_W_ref = W0.lu().solve(W_ref);
-    Matrix V0_inv_V_ref = V0.lu().solve(V_ref);
+    Matrix W0_inv_W_ref = W0.partialPivLu().solve(W_ref);
+    Matrix V0_inv_V_ref = V0.partialPivLu().solve(V_ref);
     Matrix A_i1 = W0_inv_W_ref + V0_inv_V_ref;
     Matrix B_i1 = W0_inv_W_ref - V0_inv_V_ref;
 
-    Matrix A_i1_inv_B_i1 = A_i1.lu().solve(B_i1);
+    Matrix A_i1_inv_B_i1 = A_i1.partialPivLu().solve(B_i1);
 
     Matrix S11 = - A_i1_inv_B_i1;
-    Matrix S12 = A_i1.lu().solve(2 * Matrix::Identity(A_i1.rows(), A_i1.cols()));
+    Matrix S12 = A_i1.partialPivLu().solve(2 * Matrix::Identity(A_i1.rows(), A_i1.cols()));
     Matrix S21 = 0.5 * (A_i1 - B_i1 * A_i1_inv_B_i1);
-    Matrix S22 = (A_i1.transpose().lu().solve(B_i1.transpose())).transpose();
+    Matrix S22 = (A_i1.transpose().partialPivLu().solve(B_i1.transpose())).transpose();
 
     return ScatteringMatrix(S11, S12, S21, S22);
 }
@@ -313,16 +314,16 @@ ScatteringMatrix SMatrixTransmission(const RCWAParams& params, const Vector& Kx,
         V_trn.col(j) = Q_trn.col(j) / lambda_trn(j); // potential division by 0...
     }
 
-    Matrix W0_inv_W_trn = W0.lu().solve(W_trn);
-    Matrix V0_inv_V_trn = V0.lu().solve(V_trn);
+    Matrix W0_inv_W_trn = W0.partialPivLu().solve(W_trn);
+    Matrix V0_inv_V_trn = V0.partialPivLu().solve(V_trn);
     Matrix A_i2 = W0_inv_W_trn + V0_inv_V_trn;
     Matrix B_i2 = W0_inv_W_trn - V0_inv_V_trn;
 
-    Matrix A_i2_inv_B_i2 = A_i2.lu().solve(B_i2);
+    Matrix A_i2_inv_B_i2 = A_i2.partialPivLu().solve(B_i2);
 
-    Matrix S11 = (A_i2.transpose().lu().solve(B_i2.transpose())).transpose();
+    Matrix S11 = (A_i2.transpose().partialPivLu().solve(B_i2.transpose())).transpose();
     Matrix S12 = 0.5 * (A_i2 - B_i2 * A_i2_inv_B_i2);
-    Matrix S21 = A_i2.lu().solve(2 * Matrix::Identity(A_i2.rows(), A_i2.cols()));
+    Matrix S21 = A_i2.partialPivLu().solve(2 * Matrix::Identity(A_i2.rows(), A_i2.cols()));
     Matrix S22 = - A_i2_inv_B_i2;
 
     return ScatteringMatrix(S11, S12, S21, S22);
@@ -366,7 +367,7 @@ void ComputeSourceModeCoeff(const Source& source, const RCWAParams& params, cons
     esrc(PQ/2) = Pol(0); // x component of electric field polarization vector
     esrc(PQ/2 + PQ) = Pol(1); // y component of electric field polarization vector
     // mode coefficients of the source
-    csrc = W_ref.lu().solve(esrc);
+    csrc = W_ref.partialPivLu().solve(esrc);
 }
 
 
@@ -439,8 +440,8 @@ ScatteringMatrix RedhefferProduct(const ScatteringMatrix& A, const ScatteringMat
     Matrix I_B11_A22 = Matrix::Identity(B.S11.rows(), A.S22.cols()) - B.S11 * A.S22;
     Matrix I_A22_B11 = Matrix::Identity(A.S22.rows(), B.S11.cols()) - A.S22 * B.S11;
 
-    auto lu_I_B11_A22 = I_B11_A22.lu();
-    auto lu_I_A22_B11 = I_A22_B11.lu();
+    auto lu_I_B11_A22 = I_B11_A22.partialPivLu();
+    auto lu_I_A22_B11 = I_A22_B11.partialPivLu();
 
     Matrix S11 = A.S11 + A.S12 * lu_I_B11_A22.solve(B.S11) * A.S21;
     Matrix S12 = A.S12 * lu_I_B11_A22.solve(B.S12);
