@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cuComplex.h> // for make_cuDoubleComplex
 #include <cufft.h>
 #include <vector>
 #include <complex>
@@ -70,7 +71,7 @@ void convMat_cu(cufftHandle& plan, cuda_Complex_d* d_er_ptr, cuda_Complex_d* d_u
 __global__ void normalizeFFT(cuda_Complex_d* data, int Nx, int Ny, int num_layers);
 
 // Swap opposite FFT quadrants for each layer
-__global__ void fftQuadShift(cuda_Complex_d* data, int Nx, int Ny, int num_layers);
+__global__ void NormalizeQuadShiftFFT(cuda_Complex_d* data, int Nx, int Ny, int num_layers);
 
 
 // Utility functions
