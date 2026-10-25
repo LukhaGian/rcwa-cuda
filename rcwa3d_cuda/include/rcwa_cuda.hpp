@@ -65,12 +65,9 @@ struct RCWAParams
 };
 
 // Function that performs FFT and normalization on the device
-void convMat_cu(cufftHandle& plan, cuda_Complex_d* d_er_ptr, cuda_Complex_d* d_ur_ptr, int Nx, int Ny, int num_layers, cudaStream_t stream = 0);
+void convMat_cu(cufftHandle& plan, cuda_Complex_d* d_er_ptr, cuda_Complex_d* d_ur_ptr, cuda_Complex_d* d_erc_ptr, cuda_Complex_d* d_urc_ptr, int Nx, int Ny, int num_layers, cudaStream_t stream = 0);
 
-// Function that defines the normalization kernel for the FFT data
-__global__ void normalizeFFT(cuda_Complex_d* data, int Nx, int Ny, int num_layers);
-
-// Swap opposite FFT quadrants for each layer
+// Kernel that defines the normalization for the FFT data and swaps opposite FFT quadrants for each layer
 __global__ void NormalizeQuadShiftFFT(cuda_Complex_d* data, int Nx, int Ny, int num_layers);
 
 

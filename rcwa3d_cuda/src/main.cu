@@ -18,8 +18,12 @@ int main()
     int Nx_harmonics = 2;
     int Ny_harmonics = 2;
 
-    Real Lx = 1.0; // unit cell dimension along X axis
-    Real Ly = 1.0; // unit cell dimension along Y axis
+    int P = 2 * Nx_harmonics + 1; // total number of harmonics along x axis
+    int Q = 2 * Ny_harmonics + 1; // total number of harmonics along y axis
+    int PQ = P * Q;
+
+    Real Lx = 1.0; // unit cell dimension along x axis
+    Real Ly = 1.0; // unit cell dimension along y axis
 
     // Build the device layers
     std::vector<std::vector<Complex>> er_layers = 
@@ -116,14 +120,20 @@ int main()
 
     cuda_Complex_d* d_er_ptr = nullptr;
     cuda_Complex_d* d_ur_ptr = nullptr;
+    cuda_Complex_d* d_erc_ptr = nullptr;
+    cuda_Complex_d* d_urc_ptr = nullptr;
     
-    // Allocate memory on the GPU for er and ur arrays
-    size_t total_bytes = sizeof(cuda_Complex_d) * Nx * Ny * thickness.size();
-    cudaMalloc(reinterpret_cast<void**>(&d_er_ptr), total_bytes);
-    cudaMalloc(reinterpret_cast<void**>(&d_ur_ptr), total_bytes);
+    // Allocate memory on the GPU for er and ur matrices (will become FFTs)
+    size_t total_bytes_FFT = sizeof(cuda_Complex_d) * Nx * Ny * thickness.size();
+    cudaMalloc(reinterpret_cast<void**>(&d_er_ptr), total_bytes_FFT);
+    cudaMalloc(reinterpret_cast<void**>(&d_ur_ptr), total_bytes_FFT);
     // Copy data from host to device
-    cudaMemcpy(d_er_ptr, h_er_ptr, total_bytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_ur_ptr, h_ur_ptr, total_bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_er_ptr, h_er_ptr, total_bytes_FFT, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_ur_ptr, h_ur_ptr, total_bytes_FFT, cudaMemcpyHostToDevice);
+    // Allocate memory on the GPU for convolution matrices erc and urc 
+    size_t total_bytes_convMat = sizeof(cuda_Complex_d) * PQ * thickness.size();
+    cudaMalloc(reinterpret_cast<void**>(&d_erc_ptr), total_bytes_convMat);
+    cudaMalloc(reinterpret_cast<void**>(&d_urc_ptr), total_bytes_convMat);
 
     cufftHandle plan;
 
@@ -140,26 +150,26 @@ int main()
     cufftPlanMany(&plan, rank, rank_dim, inembed, istride, idist, onembed, ostride, odist, CUFFT_Z2Z, thickness.size());
 
     // Perform convolution
-    convMat_cu(plan, d_er_ptr, d_ur_ptr, Nx, Ny, thickness.size());
+    convMat_cu(plan, d_er_ptr, d_ur_ptr, d_erc_ptr, d_urc_ptr, Nx, Ny, thickness.size());
 
     cudaDeviceSynchronize();
 
-    cudaMemcpy(h_er_ptr, d_er_ptr, total_bytes, cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_ur_ptr, d_ur_ptr, total_bytes, cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_er_ptr, d_er_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_ur_ptr, d_ur_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost);
 
     cufftDestroy(plan);
     cudaFree(d_er_ptr);
     cudaFree(d_ur_ptr);
 
     std::cout << "Size of er " << er.size() << '\n'; /////////////////// To Be checked
-    /*
+
     for (size_t i = 0; i < Nx*Ny*thickness.size(); ++i) 
     {
         if (i % (Nx*Ny) == 0)
             std::cout << "Reached end of layer" << '\n';
         std::cout << er[i] << '\n';
     }
-    */
+    
 
     /*
     // Test
