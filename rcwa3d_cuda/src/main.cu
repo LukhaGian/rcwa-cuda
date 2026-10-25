@@ -2,12 +2,6 @@
 #include <iostream>
 #include <cuda_runtime.h>
 
-__global__ void helloFromGPU() {
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tid == 0) {
-        printf("Hello from CUDA Kernel on thread %d!\n", tid);
-    }
-}
 
 int main()
 {
@@ -111,30 +105,39 @@ int main()
     RCWAParams params(Nx_harmonics, Ny_harmonics, er_ref, ur_ref, er_trn, ur_trn);
 
     // CUDA
+    // sizeof() returns a size_t, so no need for explicit cast
+    const size_t total_bytes_FFT = sizeof(cuda_Complex_d) * Nx * Ny * thickness.size();
+    const size_t convMat_elements = static_cast<size_t>(PQ) * PQ * thickness.size();
+    const size_t total_bytes_convMat = sizeof(cuda_Complex_d) * convMat_elements;
 
+    // Host pointers
     // Safe pointer cast
     cuda_Complex_d* h_er_ptr = reinterpret_cast<cuda_Complex_d*>(er.data()); // layout compatibile types, .data() since we want to point to the underlying data, not the wrapper 
-    std::cout << "Pointer to er array: " << static_cast<void*>(h_er_ptr) << std::endl;
+    //std::cout << "Pointer to er array: " << static_cast<void*>(h_er_ptr) << std::endl;
     cuda_Complex_d* h_ur_ptr = reinterpret_cast<cuda_Complex_d*>(ur.data()); // layout compatibile types
-    std::cout << "Pointer to ur array: " << static_cast<void*>(h_ur_ptr) << std::endl;
+    //std::cout << "Pointer to ur array: " << static_cast<void*>(h_ur_ptr) << std::endl;
+    std::vector<Complex> h_erc(convMat_elements);
+    std::vector<Complex> h_urc(convMat_elements);
+    cuda_Complex_d* h_erc_ptr = reinterpret_cast<cuda_Complex_d*>(h_erc.data()); // allocate host side memory
+    cuda_Complex_d* h_urc_ptr = reinterpret_cast<cuda_Complex_d*>(h_urc.data());
 
+    // Device pointers
     cuda_Complex_d* d_er_ptr = nullptr;
     cuda_Complex_d* d_ur_ptr = nullptr;
     cuda_Complex_d* d_erc_ptr = nullptr;
     cuda_Complex_d* d_urc_ptr = nullptr;
     
     // Allocate memory on the GPU for er and ur matrices (will become FFTs)
-    size_t total_bytes_FFT = sizeof(cuda_Complex_d) * Nx * Ny * thickness.size();
     cudaMalloc(reinterpret_cast<void**>(&d_er_ptr), total_bytes_FFT);
     cudaMalloc(reinterpret_cast<void**>(&d_ur_ptr), total_bytes_FFT);
     // Copy data from host to device
     cudaMemcpy(d_er_ptr, h_er_ptr, total_bytes_FFT, cudaMemcpyHostToDevice);
     cudaMemcpy(d_ur_ptr, h_ur_ptr, total_bytes_FFT, cudaMemcpyHostToDevice);
     // Allocate memory on the GPU for convolution matrices erc and urc 
-    size_t total_bytes_convMat = sizeof(cuda_Complex_d) * PQ * thickness.size();
     cudaMalloc(reinterpret_cast<void**>(&d_erc_ptr), total_bytes_convMat);
     cudaMalloc(reinterpret_cast<void**>(&d_urc_ptr), total_bytes_convMat);
 
+    // cuFFT plan
     cufftHandle plan;
 
     int rank = 2; //2D FFT
@@ -150,17 +153,28 @@ int main()
     cufftPlanMany(&plan, rank, rank_dim, inembed, istride, idist, onembed, ostride, odist, CUFFT_Z2Z, thickness.size());
 
     // Perform convolution
-    convMat_cu(plan, d_er_ptr, d_ur_ptr, d_erc_ptr, d_urc_ptr, Nx, Ny, thickness.size());
+    convMat_cu(plan, d_er_ptr, d_ur_ptr, d_erc_ptr, d_urc_ptr, Nx, Ny, thickness.size(), Nx_harmonics, Ny_harmonics, Q, PQ);
 
     cudaDeviceSynchronize();
 
     cudaMemcpy(h_er_ptr, d_er_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost);
     cudaMemcpy(h_ur_ptr, d_ur_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_erc_ptr, d_erc_ptr, total_bytes_convMat, cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_urc_ptr, d_urc_ptr, total_bytes_convMat, cudaMemcpyDeviceToHost);
 
     cufftDestroy(plan);
     cudaFree(d_er_ptr);
     cudaFree(d_ur_ptr);
+    cudaFree(d_erc_ptr);
+    cudaFree(d_urc_ptr);
 
+    //////////////////////////////////////////////////
+    // TESTING
+    //////////////////////////////////////////////////
+
+
+    // fft
+    /*
     std::cout << "Size of er " << er.size() << '\n'; /////////////////// To Be checked
 
     for (size_t i = 0; i < Nx*Ny*thickness.size(); ++i) 
@@ -169,34 +183,16 @@ int main()
             std::cout << "Reached end of layer" << '\n';
         std::cout << er[i] << '\n';
     }
-    
-
-    /*
-    // Test
-    int deviceCount = 0;
-    cudaGetDeviceCount(&deviceCount);
-
-    if (deviceCount == 0) {
-        std::cerr << "No CUDA devices found!" << std::endl;
-        return 1;
-    }
-
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
-    std::cout << "Running on GPU: " << prop.name << std::endl;
-    std::cout << "Compute Capability: " << prop.major << "." << prop.minor << std::endl;
-
-    // Launch kernel with 1 block of 64 threads
-    helloFromGPU<<<1, 64>>>();
-    
-    // Wait for GPU to complete
-    cudaError_t err = cudaDeviceSynchronize();
-    if (err != cudaSuccess) {
-        std::cerr << "CUDA Error: " << cudaGetErrorString(err) << std::endl;
-        return 1;
-    }
-
     */
+    // convMat, Toeplitz
+    std::cout << "Size of erc " << h_erc.size() << '\n'; /////////////////// To Be checked
 
+    for (size_t i = 0; i < PQ*PQ*thickness.size(); ++i) 
+    {
+        if (i >= (PQ*PQ) && i < 2*(PQ*PQ))
+            std::cout << h_erc[i] << '\n';
+    }
+
+    
     return 0;
 }

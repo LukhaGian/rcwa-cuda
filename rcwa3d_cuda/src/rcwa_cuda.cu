@@ -1,21 +1,27 @@
 #include "rcwa_cuda.hpp"
 
-void convMat_cu(cufftHandle& plan, cuda_Complex_d* d_er_ptr, cuda_Complex_d* d_ur_ptr, cuda_Complex_d* d_erc_ptr, cuda_Complex_d* d_urc_ptr, int Nx, int Ny, int num_layers, cudaStream_t stream)
+void convMat_cu(cufftHandle& plan, cuda_Complex_d* d_er_ptr, cuda_Complex_d* d_ur_ptr, cuda_Complex_d* d_erc_ptr, cuda_Complex_d* d_urc_ptr, int Nx, int Ny, int num_layers, int Nx_harmonics, int Ny_harmonics, int Q, int PQ, cudaStream_t stream)
 {
     /*
-    Function that 
+    Function that computes the convolution matrices erc and urc (pointers d_erc_ptr and d_urc_ptr) 
+    applying a forward FFT, normalization and quandrant shift to er and ur (pointers d_er_ptr and d_ur_ptr)
+    and then computing the convolution matrices (Toeplitz).
     */
+
     // Target the specific stream instance for this cuFFT plan configuration
     cufftSetStream(plan, stream);
 
     int thread_per_block = 256;
     int shift_blocks = ((Nx / 2) * (Ny / 2) * num_layers + thread_per_block - 1) / thread_per_block;
+    int conv_blocks = (num_layers * PQ * PQ + thread_per_block - 1) / thread_per_block; // check what can be more optimal
 
     // potentially merge the calls into a unique FFT and QuadShift
     cufftExecZ2Z(plan, d_er_ptr, d_er_ptr, CUFFT_FORWARD);
     NormalizeQuadShiftFFT<<<shift_blocks, thread_per_block, 0, stream>>>(d_er_ptr, Nx, Ny, num_layers); // 256 threads, 32 threads per warp --> 8 warps per block
+    convMatAssembly<<<conv_blocks, thread_per_block, 0, stream>>>(d_er_ptr, d_erc_ptr, Nx, Ny, num_layers, Nx_harmonics, Ny_harmonics, Q, PQ);
     cufftExecZ2Z(plan, d_ur_ptr, d_ur_ptr, CUFFT_FORWARD);
     NormalizeQuadShiftFFT<<<shift_blocks, thread_per_block, 0, stream>>>(d_ur_ptr, Nx, Ny, num_layers);
+    convMatAssembly<<<conv_blocks, thread_per_block, 0, stream>>>(d_ur_ptr, d_urc_ptr, Nx, Ny, num_layers, Nx_harmonics, Ny_harmonics, Q, PQ);
 
 }
 
@@ -56,5 +62,42 @@ __global__ void NormalizeQuadShiftFFT(cuda_Complex_d* data, int Nx, int Ny, int 
         b = data[q3];
         data[q2] = make_cuDoubleComplex(b.x * scale, b.y * scale);
         data[q3] = make_cuDoubleComplex(a.x * scale, a.y * scale);
+    }
+}
+
+__global__ void convMatAssembly(cuda_Complex_d* fft_data, cuda_Complex_d* conv_data, int Nx, int Ny, int num_layers, int Nx_harmonics, int Ny_harmonics, int Q, int PQ)
+{
+
+    /*
+    Kernel that assembles the convolution matrix from the fft data.
+    */
+    int out_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int total = PQ * PQ * num_layers;
+
+    if (out_idx < total) 
+    {
+        int layer = out_idx / (PQ * PQ);
+        int within_layer = out_idx % (PQ * PQ);
+
+        // conv_data is row-major: n varies fastest
+        int m = within_layer / PQ;
+        int n = within_layer % PQ;
+
+        int px_m = m / Q - Nx_harmonics;
+        int py_m = m % Q - Ny_harmonics;
+        int px_n = n / Q - Nx_harmonics;
+        int py_n = n % Q - Ny_harmonics;
+
+        int kx = (Nx / 2) + px_m - px_n;
+        int ky = (Ny / 2) + py_m - py_n;
+
+        int c_offset = out_idx;
+        if (kx >= 0 && kx < Nx && ky >= 0 && ky < Ny) 
+        {
+            int f_offset = layer * Nx * Ny + ky * Nx + kx;
+            conv_data[c_offset] = fft_data[f_offset];
+        } 
+        else // to be checked thoroughly
+            conv_data[c_offset] = make_cuDoubleComplex(0.0, 0.0);
     }
 }
