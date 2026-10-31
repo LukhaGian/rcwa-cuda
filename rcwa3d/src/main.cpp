@@ -16,11 +16,11 @@ int main()
         std::cout << "Eigen is NOT using LAPACKE.\n";
     #endif
 
-    int Nx = 2048; // make sure it's always even
-    int Ny = 2048;
+    int Nx = 6; // make sure it's always even
+    int Ny = 6;
 
-    int Nx_harmonics = 10;
-    int Ny_harmonics = 10;
+    int Nx_harmonics = 1;
+    int Ny_harmonics = 1;
 
 
     Real Lx = 1.0; // unit cell dimension along X axis
@@ -105,7 +105,11 @@ int main()
         std::cout << "Convolution for Layer " << layer << '\n';
         device.erc.at(layer) = ConvMat(device.er, layer, device.Nx, device.Ny, params.Nx_harmonics, params.Ny_harmonics);
         device.urc.at(layer) = ConvMat(device.ur, layer, device.Nx, device.Ny, params.Nx_harmonics, params.Ny_harmonics);
+        if (layer == 0)
+            std::cout << device.erc.at(layer) << '\n';
     }
+    /*
+
 
     ComputeWaveVectors(device, source, params, k_inc, Kx, Ky, Kz_ref, Kz_trn);
     GapMedium(Kx, Ky, W0, V0);
@@ -136,8 +140,8 @@ int main()
 
     Results results = ComputeDiffractionEfficiencies(params, r, t, k_inc, Kz_ref, Kz_trn);
     std::cout << "R + T = " << results.R_tot << " + " << results.T_tot << " = " << results.R_tot + results.T_tot<< '\n';
-    
 
+    */
     return 0;
 }
 
