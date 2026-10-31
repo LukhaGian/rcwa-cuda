@@ -9,8 +9,8 @@ int main()
     int Nx = 6; // make sure it's always even
     int Ny = 6;
 
-    int Nx_harmonics = 2;
-    int Ny_harmonics = 2;
+    int Nx_harmonics = 1;
+    int Ny_harmonics = 1;
 
     int P = 2 * Nx_harmonics + 1; // total number of harmonics along x axis
     int Q = 2 * Ny_harmonics + 1; // total number of harmonics along y axis
@@ -189,7 +189,7 @@ int main()
 
     for (size_t i = 0; i < PQ*PQ*thickness.size(); ++i) 
     {
-        if (i >= (PQ*PQ) && i < 2*(PQ*PQ))
+        if (i < (PQ*PQ))
             std::cout << h_erc[i] << '\n';
     }
 
