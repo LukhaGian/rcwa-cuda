@@ -79,9 +79,9 @@ __global__ void convMatAssembly(cuda_Complex_d* fft_data, cuda_Complex_d* conv_d
         int layer = out_idx / (PQ * PQ);
         int within_layer = out_idx % (PQ * PQ);
 
-        // conv_data is row-major: n varies fastest
-        int m = within_layer / PQ;
-        int n = within_layer % PQ;
+        // conv_data is column-major: m varies fastest --> cast to column-major indexing for cuBLAS/cuSOLVER calls
+        int n = within_layer / PQ;
+        int m = within_layer % PQ;
 
         int px_m = m / Q - Nx_harmonics;
         int py_m = m % Q - Ny_harmonics;
