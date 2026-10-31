@@ -38,9 +38,10 @@ int main()
             layer::uniform(Nx, Ny, Complex(4.0, 0.0)),
             layer::square_pattern(Nx, Ny, Complex(7.0, 0.0), Complex(1.0, 0.0))
             */
-            layer::triangle_pattern(Nx, Ny, Lx, Ly),
-            layer::x_pattern(Nx, Ny, Lx, Ly),
-            layer::uniform(Nx, Ny, Complex(1.0, 0.0))
+            layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
+            layer::x_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
+            layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
+            layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0))
 
     };
     std::vector<std::vector<Complex>> ur_layers = 
@@ -54,9 +55,10 @@ int main()
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
             layer::uniform(Nx, Ny, Complex(1.0, 0.0))
             */
+            layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.35, 0.35, Complex(1.0, 0.0), Complex(5.0, 0.0)),
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
             layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            layer::uniform(Nx, Ny, Complex(1.0, 0.0))
+            layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.2, 0.2, Complex(2.0, 0.0), Complex(8.0, 0.0))
 
     };
     std::vector<Complex> er = layer::stack(er_layers);
@@ -64,7 +66,7 @@ int main()
 
 
     //std::vector<Real> thickness{1.5, 0.3, 2.4, 2.6, 1.1, 0.25};
-    std::vector<Real> thickness{1.5, 0.3, 2.4};
+    std::vector<Real> thickness{1.5, 0.3, 2.4, 3.0};
 
     // Build the device
     Device device(Nx, Ny, thickness.size(), Lx, Ly, er, ur, thickness, Nx_harmonics, Ny_harmonics);
@@ -105,8 +107,12 @@ int main()
         std::cout << "Convolution for Layer " << layer << '\n';
         device.erc.at(layer) = ConvMat(device.er, layer, device.Nx, device.Ny, params.Nx_harmonics, params.Ny_harmonics);
         device.urc.at(layer) = ConvMat(device.ur, layer, device.Nx, device.Ny, params.Nx_harmonics, params.Ny_harmonics);
-        if (layer == 0)
+        if (layer == 3)
+        {
             std::cout << device.erc.at(layer) << '\n';
+            std::cout << '\n';
+            std::cout << device.urc.at(layer) << '\n';
+        }
     }
     /*
 
