@@ -23,6 +23,7 @@ target_sources(rcwa_cu_main PRIVATE
 # Specify include directories for compilation
 target_include_directories(rcwa_cu_main PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include # Project-specific headers
+    ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include # Helpers shared with the other build
 )
 
 # Add the cuFFT library linking step
