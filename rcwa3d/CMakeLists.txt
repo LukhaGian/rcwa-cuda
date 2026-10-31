@@ -46,7 +46,7 @@ endif()
 target_compile_definitions(rcwa_main PRIVATE
     EIGEN_USE_BLAS # Use external BLAS for matrix op
     EIGEN_USE_LAPACKE # Use LAPACKE for advanced linear algebra
-    EIGEN_USE_OPENMP # Use OpenMP for parallelization in Eigen
+    $<$<NOT:$<CONFIG:Debug>>:NDEBUG> # Disable Eigen's internal assertions, except in Debug builds
 )
 
 # Link against performance-critical libraries
