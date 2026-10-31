@@ -133,7 +133,7 @@ int main()
     cudaMalloc(reinterpret_cast<void**>(&d_er_ptr), total_bytes_FFT);
     cudaMalloc(reinterpret_cast<void**>(&d_ur_ptr), total_bytes_FFT);
     // Copy data from host to device
-    cudaMemcpy(d_er_ptr, h_er_ptr, total_bytes_FFT, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_er_ptr, h_er_ptr, total_bytes_FFT, cudaMemcpyHostToDevice); // will be substituted by cudaMemcpyAsync(d_er_ptr, h_er_ptr, total_bytes_FFT, cudaMemcpyHostToDevice, stream) in the future
     cudaMemcpy(d_ur_ptr, h_ur_ptr, total_bytes_FFT, cudaMemcpyHostToDevice);
     // Allocate memory on the GPU for convolution matrices erc and urc 
     cudaMalloc(reinterpret_cast<void**>(&d_erc_ptr), total_bytes_convMat);
@@ -157,7 +157,7 @@ int main()
     // Perform convolution
     convMat_cu(plan, d_er_ptr, d_ur_ptr, d_erc_ptr, d_urc_ptr, Nx, Ny, thickness.size(), Nx_harmonics, Ny_harmonics, Q, PQ);
 
-    cudaDeviceSynchronize();
+    cudaDeviceSynchronize(); // will be substituted by cudaStreamSynchronize(stream) in the future
 
     cudaMemcpy(h_er_ptr, d_er_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost);
     cudaMemcpy(h_ur_ptr, d_ur_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost);
