@@ -27,7 +27,7 @@ target_include_directories(rcwa_cu_main PRIVATE
 )
 
 # Add the cuFFT library linking step
-target_link_libraries(rcwa_cu_main PRIVATE CUDA::cufft) # /////////////////// To Be Checked
+target_link_libraries(rcwa_cu_main PRIVATE CUDA::cufft CUDA::cusolver CUDA::cublas)
 
 # Optimization flags for nvcc
 target_compile_options(rcwa_cu_main PRIVATE

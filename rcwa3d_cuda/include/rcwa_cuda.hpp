@@ -3,6 +3,8 @@
 #include <rcwa_layers.hpp>
 #include <cuComplex.h> // for make_cuDoubleComplex
 #include <cufft.h>
+#include <cublas_v2.h>
+#include <cusolverDn.h>
 #include <vector>
 #include <complex>
 using namespace std::complex_literals; // Enables the '1i' literal
