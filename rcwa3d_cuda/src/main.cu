@@ -177,7 +177,7 @@ int main()
 
     // fft
     /*
-    std::cout << "Size of er " << er.size() << '\n'; /////////////////// To Be checked
+    std::cout << "Size of er " << er.size() << '\n';
 
     for (size_t i = 0; i < Nx*Ny*thickness.size(); ++i) 
     {
@@ -187,12 +187,20 @@ int main()
     }
     */
     // convMat, Toeplitz
-    std::cout << "Size of erc " << h_erc.size() << '\n'; /////////////////// To Be checked
+    std::cout << "Size of erc " << h_erc.size() << '\n';
 
     for (size_t i = 0; i < PQ*PQ*thickness.size(); ++i) 
     {
-        if (i < (PQ*PQ))
+        if (i >= 3*(PQ*PQ) && i < 4*(PQ*PQ))
             std::cout << h_erc[i] << '\n';
+    }
+    std::cout << "----------------------------------------" << '\n';
+    std::cout << "Size of urc " << h_urc.size() << '\n'; 
+
+    for (size_t i = 0; i < PQ*PQ*thickness.size(); ++i) 
+    {
+        if (i >= 3*(PQ*PQ) && i < 4*(PQ*PQ))
+            std::cout << h_urc[i] << '\n';
     }
 
     
