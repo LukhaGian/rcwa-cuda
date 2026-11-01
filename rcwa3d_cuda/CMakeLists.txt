@@ -6,9 +6,10 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 # Target Kaggle's Tesla T4 GPU (sm_75)
 set(CMAKE_CUDA_ARCHITECTURES 75)
+# set(CMAKE_CUDA_ARCHITECTURES 75;80) # A100 (sm_80)
 
-# Find the CUDA toolkit (ensure it includes the cufft component) ////////////////// To Be Checked
-find_package(CUDAToolkit REQUIRED COMPONENTS cufft)
+# Find the CUDA toolkit, which provides the CUDA::cufft, CUDA::cusolver and CUDA::cublas targets
+find_package(CUDAToolkit REQUIRED)
 
 # Standalone CUDA executable
 add_executable(rcwa_cu_main src/main.cu)
