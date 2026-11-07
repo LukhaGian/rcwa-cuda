@@ -16,12 +16,16 @@ void convMat_cu(cufftHandle& plan, cuda_Complex_d* d_er_ptr, cuda_Complex_d* d_u
     int conv_blocks = (num_layers * PQ * PQ + thread_per_block - 1) / thread_per_block; // check what can be more optimal
 
     // potentially merge the calls into a unique FFT and QuadShift
-    cufftExecZ2Z(plan, d_er_ptr, d_er_ptr, CUFFT_FORWARD);
+    CHECK(cufftExecZ2Z(plan, d_er_ptr, d_er_ptr, CUFFT_FORWARD));
     NormalizeQuadShiftFFT<<<shift_blocks, thread_per_block, 0, stream>>>(d_er_ptr, Nx, Ny, num_layers); // 256 threads, 32 threads per warp --> 8 warps per block
+    CHECK(cudaGetLastError());
     convMatAssembly<<<conv_blocks, thread_per_block, 0, stream>>>(d_er_ptr, d_erc_ptr, Nx, Ny, num_layers, Nx_harmonics, Ny_harmonics, Q, PQ);
-    cufftExecZ2Z(plan, d_ur_ptr, d_ur_ptr, CUFFT_FORWARD);
+    CHECK(cudaGetLastError());
+    CHECK(cufftExecZ2Z(plan, d_ur_ptr, d_ur_ptr, CUFFT_FORWARD));
     NormalizeQuadShiftFFT<<<shift_blocks, thread_per_block, 0, stream>>>(d_ur_ptr, Nx, Ny, num_layers);
+    CHECK(cudaGetLastError());
     convMatAssembly<<<conv_blocks, thread_per_block, 0, stream>>>(d_ur_ptr, d_urc_ptr, Nx, Ny, num_layers, Nx_harmonics, Ny_harmonics, Q, PQ);
+    CHECK(cudaGetLastError());
 
 }
 

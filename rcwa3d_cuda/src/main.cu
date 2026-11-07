@@ -130,14 +130,14 @@ int main()
     cuda_Complex_d* d_urc_ptr = nullptr;
     
     // Allocate memory on the GPU for er and ur matrices (will become FFTs)
-    cudaMalloc(reinterpret_cast<void**>(&d_er_ptr), total_bytes_FFT);
-    cudaMalloc(reinterpret_cast<void**>(&d_ur_ptr), total_bytes_FFT);
+    CHECK(cudaMalloc(reinterpret_cast<void**>(&d_er_ptr), total_bytes_FFT));
+    CHECK(cudaMalloc(reinterpret_cast<void**>(&d_ur_ptr), total_bytes_FFT));
     // Copy data from host to device
-    cudaMemcpy(d_er_ptr, h_er_ptr, total_bytes_FFT, cudaMemcpyHostToDevice); // will be substituted by cudaMemcpyAsync(d_er_ptr, h_er_ptr, total_bytes_FFT, cudaMemcpyHostToDevice, stream) in the future
-    cudaMemcpy(d_ur_ptr, h_ur_ptr, total_bytes_FFT, cudaMemcpyHostToDevice);
+    CHECK(cudaMemcpy(d_er_ptr, h_er_ptr, total_bytes_FFT, cudaMemcpyHostToDevice)); // will be substituted by cudaMemcpyAsync(d_er_ptr, h_er_ptr, total_bytes_FFT, cudaMemcpyHostToDevice, stream) in the future
+    CHECK(cudaMemcpy(d_ur_ptr, h_ur_ptr, total_bytes_FFT, cudaMemcpyHostToDevice));
     // Allocate memory on the GPU for convolution matrices erc and urc 
-    cudaMalloc(reinterpret_cast<void**>(&d_erc_ptr), total_bytes_convMat);
-    cudaMalloc(reinterpret_cast<void**>(&d_urc_ptr), total_bytes_convMat);
+    CHECK(cudaMalloc(reinterpret_cast<void**>(&d_erc_ptr), total_bytes_convMat));
+    CHECK(cudaMalloc(reinterpret_cast<void**>(&d_urc_ptr), total_bytes_convMat));
 
     // cuFFT plan
     cufftHandle plan;
@@ -152,17 +152,17 @@ int main()
     int odist = Nx*Ny;
 
     // Create a cuFFT plan 
-    cufftPlanMany(&plan, rank, rank_dim, inembed, istride, idist, onembed, ostride, odist, CUFFT_Z2Z, thickness.size());
+    CHECK(cufftPlanMany(&plan, rank, rank_dim, inembed, istride, idist, onembed, ostride, odist, CUFFT_Z2Z, thickness.size()));
 
     // Perform convolution
     convMat_cu(plan, d_er_ptr, d_ur_ptr, d_erc_ptr, d_urc_ptr, Nx, Ny, thickness.size(), Nx_harmonics, Ny_harmonics, Q, PQ);
 
-    cudaDeviceSynchronize(); // will be substituted by cudaStreamSynchronize(stream) in the future
+    CHECK(cudaDeviceSynchronize()); // will be substituted by cudaStreamSynchronize(stream) in the future
 
-    cudaMemcpy(h_er_ptr, d_er_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_ur_ptr, d_ur_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_erc_ptr, d_erc_ptr, total_bytes_convMat, cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_urc_ptr, d_urc_ptr, total_bytes_convMat, cudaMemcpyDeviceToHost);
+    CHECK(cudaMemcpy(h_er_ptr, d_er_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost));
+    CHECK(cudaMemcpy(h_ur_ptr, d_ur_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost));
+    CHECK(cudaMemcpy(h_erc_ptr, d_erc_ptr, total_bytes_convMat, cudaMemcpyDeviceToHost));
+    CHECK(cudaMemcpy(h_urc_ptr, d_urc_ptr, total_bytes_convMat, cudaMemcpyDeviceToHost));
 
     cufftDestroy(plan);
     cudaFree(d_er_ptr);
@@ -173,6 +173,9 @@ int main()
     //////////////////////////////////////////////////
     // TESTING
     //////////////////////////////////////////////////
+    // CHECK WILL FAIL HERE
+    // void* p = nullptr;
+    // CHECK(cudaMalloc(&p, size_t(1) << 50)); // 1 PB
 
 
     // fft

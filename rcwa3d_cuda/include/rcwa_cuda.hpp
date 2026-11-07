@@ -1,6 +1,7 @@
 #pragma once
 
-#include <rcwa_layers.hpp>
+#include "rcwa_layers.hpp"
+#include "cuda_check.hpp"
 #include <cuComplex.h> // for make_cuDoubleComplex
 #include <cufft.h>
 #include <cublas_v2.h>
