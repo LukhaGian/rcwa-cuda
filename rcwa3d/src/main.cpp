@@ -114,7 +114,6 @@ int main()
             std::cout << device.urc.at(layer) << '\n';
         }
     }
-    /*
 
 
     ComputeWaveVectors(device, source, params, k_inc, Kx, Ky, Kz_ref, Kz_trn);
@@ -147,7 +146,6 @@ int main()
     Results results = ComputeDiffractionEfficiencies(params, r, t, k_inc, Kz_ref, Kz_trn);
     std::cout << "R + T = " << results.R_tot << " + " << results.T_tot << " = " << results.R_tot + results.T_tot<< '\n';
 
-    */
     return 0;
 }
 
