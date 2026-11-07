@@ -208,12 +208,24 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     std::cout << "Omega2 " << double((Omega2.array() != 0.0).count()) / Omega2.size() << '\n';
 
     // solve eigenvalue problem Omega2 * x = lambda * x
-    // In general, EigenSolver<Matrix> solver(A)
-    // if A = A^T --> use SelfAdjointEigenSolver<Matrix> solver(A)
-    Eigen::ComplexEigenSolver<Matrix> solver(Omega2);
-
-    if (solver.info() != Eigen::Success) abort();
-    auto [lambda2, W_i] = extraction(std::move(solver));
+    
+    // Eigen ComplexEigenSolver
+    //Eigen::ComplexEigenSolver<Matrix> solver(Omega2);
+    //if (solver.info() != Eigen::Success) abort();
+    //auto [lambda2, W_i] = extraction(std::move(solver));
+    
+    // LAPACK zgeev (right eigenvectors only)
+    const lapack_int n = 2 * PQ;
+    Vector lambda2(n);
+    Matrix W_i(n, n);
+    Matrix VL(1, 1); // not referenced with jobvl = 'N'
+    const lapack_int info = LAPACKE_zgeev(LAPACK_COL_MAJOR, 'N', 'V', n,
+                                          reinterpret_cast<lapack_complex_double*>(Omega2.data()), n, // Omega2 is overwritten
+                                          reinterpret_cast<lapack_complex_double*>(lambda2.data()),
+                                          reinterpret_cast<lapack_complex_double*>(VL.data()), 1,
+                                          reinterpret_cast<lapack_complex_double*>(W_i.data()), n);
+    if (info != 0) abort();
+    
     auto lambda = unsigned_sqrt(lambda2.array()); // custom correct branch of sqrt enforced via unsigned_sqrt
 
     Matrix V_i = Q_i * W_i;
