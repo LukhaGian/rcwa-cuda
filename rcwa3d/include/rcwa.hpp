@@ -184,7 +184,7 @@ void MeshGrid(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& x, const Eigen::Ma
     Y = y.replicate(1, x.size());
 }
 
-
+/*
 struct EigenvalSolverResults
 {
     // Struct to hold the results of the eigenvalue solver
@@ -193,5 +193,5 @@ struct EigenvalSolverResults
 };
 
 EigenvalSolverResults extraction(Eigen::ComplexEigenSolver<Matrix>&& solver); // Function to extract eigenvalues and eigenvectors from a ComplexEigenSolver object, using move semantics to avoid unnecessary copies
-
+*/
 // ======================================================================================

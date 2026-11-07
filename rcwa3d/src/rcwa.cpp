@@ -465,8 +465,10 @@ ScatteringMatrix RedhefferProduct(const ScatteringMatrix& A, const ScatteringMat
     return ScatteringMatrix(S11, S12, S21, S22);
 }
 
+/*
 EigenvalSolverResults extraction(Eigen::ComplexEigenSolver<Matrix>&& solver)
 {
     // Return values are constructed directly in the caller's memory frame
     return EigenvalSolverResults{solver.eigenvalues(), solver.eigenvectors()};
 }
+*/
