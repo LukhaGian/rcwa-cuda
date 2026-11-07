@@ -107,6 +107,12 @@ int main()
     RCWAParams params(Nx_harmonics, Ny_harmonics, er_ref, ur_ref, er_trn, ur_trn);
 
     // CUDA
+
+    // Create stream
+    cudaStream_t stream;
+    CHECK(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking)); // Create a non-blocking stream wrt legacy default stream
+
+
     // sizeof() returns a size_t, so no need for explicit cast
     const size_t total_bytes_FFT = sizeof(cuda_Complex_d) * Nx * Ny * thickness.size();
     const size_t convMat_elements = static_cast<size_t>(PQ) * PQ * thickness.size();
@@ -132,9 +138,9 @@ int main()
     // Allocate memory on the GPU for er and ur matrices (will become FFTs)
     CHECK(cudaMalloc(reinterpret_cast<void**>(&d_er_ptr), total_bytes_FFT));
     CHECK(cudaMalloc(reinterpret_cast<void**>(&d_ur_ptr), total_bytes_FFT));
-    // Copy data from host to device
-    CHECK(cudaMemcpy(d_er_ptr, h_er_ptr, total_bytes_FFT, cudaMemcpyHostToDevice)); // will be substituted by cudaMemcpyAsync(d_er_ptr, h_er_ptr, total_bytes_FFT, cudaMemcpyHostToDevice, stream) in the future
-    CHECK(cudaMemcpy(d_ur_ptr, h_ur_ptr, total_bytes_FFT, cudaMemcpyHostToDevice));
+    // Copy data from host to device in asynchronous mode using the created stream
+    CHECK(cudaMemcpyAsync(d_er_ptr, h_er_ptr, total_bytes_FFT, cudaMemcpyHostToDevice, stream));
+    CHECK(cudaMemcpyAsync(d_ur_ptr, h_ur_ptr, total_bytes_FFT, cudaMemcpyHostToDevice, stream));
     // Allocate memory on the GPU for convolution matrices erc and urc 
     CHECK(cudaMalloc(reinterpret_cast<void**>(&d_erc_ptr), total_bytes_convMat));
     CHECK(cudaMalloc(reinterpret_cast<void**>(&d_urc_ptr), total_bytes_convMat));
@@ -155,14 +161,16 @@ int main()
     CHECK(cufftPlanMany(&plan, rank, rank_dim, inembed, istride, idist, onembed, ostride, odist, CUFFT_Z2Z, thickness.size()));
 
     // Perform convolution
-    convMat_cu(plan, d_er_ptr, d_ur_ptr, d_erc_ptr, d_urc_ptr, Nx, Ny, thickness.size(), Nx_harmonics, Ny_harmonics, Q, PQ);
+    convMat_cu(plan, d_er_ptr, d_ur_ptr, d_erc_ptr, d_urc_ptr, Nx, Ny, thickness.size(), Nx_harmonics, Ny_harmonics, Q, PQ, stream);
 
-    CHECK(cudaDeviceSynchronize()); // will be substituted by cudaStreamSynchronize(stream) in the future
 
-    CHECK(cudaMemcpy(h_er_ptr, d_er_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost));
-    CHECK(cudaMemcpy(h_ur_ptr, d_ur_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost));
-    CHECK(cudaMemcpy(h_erc_ptr, d_erc_ptr, total_bytes_convMat, cudaMemcpyDeviceToHost));
-    CHECK(cudaMemcpy(h_urc_ptr, d_urc_ptr, total_bytes_convMat, cudaMemcpyDeviceToHost));
+    //CHECK(cudaMemcpy(h_er_ptr, d_er_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost));
+    //CHECK(cudaMemcpy(h_ur_ptr, d_ur_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost));
+    CHECK(cudaMemcpyAsync(h_erc_ptr, d_erc_ptr, total_bytes_convMat, cudaMemcpyDeviceToHost, stream));
+    CHECK(cudaMemcpyAsync(h_urc_ptr, d_urc_ptr, total_bytes_convMat, cudaMemcpyDeviceToHost, stream));
+
+    CHECK(cudaStreamSynchronize(stream)); // Synchronize the stream to ensure all operations are complete before proceeding
+
 
     cufftDestroy(plan);
     cudaFree(d_er_ptr);
