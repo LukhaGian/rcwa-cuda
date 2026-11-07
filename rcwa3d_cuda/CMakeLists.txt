@@ -34,3 +34,9 @@ target_link_libraries(rcwa_cu_main PRIVATE CUDA::cufft CUDA::cusolver CUDA::cubl
 target_compile_options(rcwa_cu_main PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:-O3 --use_fast_math>
 )
+
+# Standalone cusolverDnXgeev benchmark
+add_executable(geev_bench tests/geev_bench.cu)
+target_include_directories(geev_bench PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(geev_bench PRIVATE CUDA::cusolver CUDA::cublas CUDA::cudart)
+target_compile_options(geev_bench PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-O3>)
