@@ -185,9 +185,10 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     Matrix P_i = Matrix::Zero(2*PQ, 2*PQ);
     //                             TO BE SUBSTITUTED WITH NO BOUND CHECK [], faster
     //                                                  view of Kx creates a temporary full dense matrix ==> to be checked if it is the best way to do it
-    Matrix erc_inv_Kx = device.erc.at(layer).partialPivLu().solve(Kx.asDiagonal().toDenseMatrix()); // do lu factorization only once
+    auto erc_partialPivLu = device.erc.at(layer).partialPivLu(); // do lu factorization only once
+    Matrix erc_inv_Kx = erc_partialPivLu.solve(Kx.asDiagonal().toDenseMatrix()); // do lu factorization only once
     std::cout << "erc_inv_Kx " << double((erc_inv_Kx.array() != 0.0).count()) / erc_inv_Kx.size() << '\n';
-    Matrix erc_inv_Ky = device.erc.at(layer).partialPivLu().solve(Ky.asDiagonal().toDenseMatrix());
+    Matrix erc_inv_Ky = erc_partialPivLu.solve(Ky.asDiagonal().toDenseMatrix());
     std::cout << "erc_inv_Ky " << double((erc_inv_Ky.array() != 0.0).count()) / erc_inv_Ky.size() << '\n';
     // P_i
     P_i.block(0, 0, PQ, PQ) = Kx.asDiagonal() * erc_inv_Ky; // top left
@@ -197,8 +198,9 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     std::cout << "P_i " << double((P_i.array() != 0.0).count()) / P_i.size() << '\n';
     // Q_i
     Matrix Q_i = Matrix::Zero(2*PQ, 2*PQ);
-    Matrix urc_inv_Kx = device.urc.at(layer).partialPivLu().solve(Kx.asDiagonal().toDenseMatrix());
-    Matrix urc_inv_Ky = device.urc.at(layer).partialPivLu().solve(Ky.asDiagonal().toDenseMatrix());
+    auto urc_partialPivLu = device.urc.at(layer).partialPivLu(); // do lu factorization only once
+    Matrix urc_inv_Kx = urc_partialPivLu.solve(Kx.asDiagonal().toDenseMatrix());
+    Matrix urc_inv_Ky = urc_partialPivLu.solve(Ky.asDiagonal().toDenseMatrix());
     Q_i.block(0, 0, PQ, PQ) = Kx.asDiagonal() * urc_inv_Ky;
     Q_i.block(0, PQ, PQ, PQ) = device.erc.at(layer) - Kx.asDiagonal() * urc_inv_Kx;
     Q_i.block(PQ, 0, PQ, PQ) = Ky.asDiagonal() * urc_inv_Ky - device.erc.at(layer);
