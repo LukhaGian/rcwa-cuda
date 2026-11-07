@@ -67,3 +67,10 @@ target_link_libraries(rcwa_main PRIVATE
 #target_include_directories(test_eigen PRIVATE
 #    ${EIGEN3_INCLUDE_DIR}
 #)
+
+# CPU baseline for the cusolverDnXgeev benchmark, built with the same flags and backends as rcwa_main
+add_executable(eigen_bench tests/eigen_bench.cpp)
+target_include_directories(eigen_bench PRIVATE ${EIGEN3_INCLUDE_DIR})
+target_compile_options(eigen_bench PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-O3 -march=native>)
+target_compile_definitions(eigen_bench PRIVATE EIGEN_USE_BLAS EIGEN_USE_LAPACKE $<$<NOT:$<CONFIG:Debug>>:NDEBUG>)
+target_link_libraries(eigen_bench PRIVATE ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} ${LAPACKE_LIBRARY} OpenMP::OpenMP_CXX)
