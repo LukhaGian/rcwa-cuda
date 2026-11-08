@@ -1,5 +1,6 @@
 #include "rcwa.hpp"
 #include <iostream>
+#include <chrono>
 
 
 int main()
@@ -16,11 +17,11 @@ int main()
         std::cout << "Eigen is NOT using LAPACKE.\n";
     #endif
 
-    int Nx = 6; // make sure it's always even
-    int Ny = 6;
+    int Nx = 2048; // make sure it's always even
+    int Ny = 2048;
 
-    int Nx_harmonics = 1;
-    int Ny_harmonics = 1;
+    int Nx_harmonics = 10;
+    int Ny_harmonics = 10;
 
 
     Real Lx = 1.0; // unit cell dimension along X axis
@@ -71,14 +72,6 @@ int main()
     // Build the device
     Device device(Nx, Ny, thickness.size(), Lx, Ly, er, ur, thickness, Nx_harmonics, Ny_harmonics);
 
-    // Build the source
-    Real lambda0 = 2.0;
-    Real theta = M_PI / 6.0;
-    Real phi = M_PI / 12.0;
-    Real pte = 0.0; // TE pol
-    Real ptm = 1.0; // TM pol
-    Source source(lambda0, theta, phi, pte, ptm);
-
     // Build reflection and transmission regions
     Complex er_ref(2.0, 0.0);
     Complex ur_ref(1.0, 0.0);
@@ -101,8 +94,56 @@ int main()
         }
     }
 
-    Results results = RCWASolveWavelength(device, source, params);
-    std::cout << "R + T = " << results.R_tot << " + " << results.T_tot << " = " << results.R_tot + results.T_tot<< '\n';
+    // Wavelength sweep parameters
+    int num_wavelengths = 8;
+
+    std::vector<Real> lambda0_v(num_wavelengths, -1.0);
+    Real lambda_start = 2.0;
+    Real lambda_end = 3.0;
+    // If num_wavelength is 1, just set it to the lambda_start value to avoid division by zero
+    if (num_wavelengths == 1)
+        lambda0_v[0] = lambda_start;
+    else 
+    {
+        Real step = (lambda_end - lambda_start) / (num_wavelengths - 1);
+        for (int i = 0; i < num_wavelengths; ++i) 
+            lambda0_v[i] = lambda_start + i * step;
+    }
+
+    // Remaining source parameters
+    Real theta = M_PI / 6.0;
+    Real phi = M_PI / 12.0;
+    Real pte = 0.0; // TE pol
+    Real ptm = 1.0; // TM pol
+    
+    std::vector<Real> R_tot(num_wavelengths, -1.0);
+    std::vector<Real> T_tot(num_wavelengths, -1.0);
+
+    const auto wall_start = std::chrono::steady_clock::now();
+    /*
+    Parallelize the wavelength sweep using OpenMP:
+    -) parallel: starts a team of threads: no. of threads = OMP_NUM_THREADS
+    -) schedule(dynamic): each thread gets an iteration at a time and asks for another one
+        when it finishes. dynamic scheduling is useful when the iterations have varying execution times,
+        which is the case here since different wavelengths may take different amounts of time to compute 
+        (small overhead compared to static scheduling).
+    */
+    #pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < num_wavelengths; ++i)
+    {
+        // Build the source
+        const Source source(lambda0_v[i], theta, phi, pte, ptm);
+        const Results results = RCWASolveWavelength(device, source, params);
+        R_tot[i] = results.R_tot;
+        T_tot[i] = results.T_tot;
+    }
+    const double wall_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - wall_start).count();
+    
+    for (int i = 0; i < num_wavelengths; ++i)
+    {
+        std::cout << "lambda = " << lambda0_v[i] << ": R + T = " << R_tot[i] << " + " << T_tot[i] << " = " << R_tot[i] + T_tot[i] << '\n';
+    }
+    std::cout << "Wall time: " << wall_s << " s" << '\n';
 
     return 0;
 }
