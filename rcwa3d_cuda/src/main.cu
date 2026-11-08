@@ -62,42 +62,8 @@ int main()
     //std::vector<Real> thickness{1.5, 0.3, 2.4, 2.6, 1.1, 0.25};
     std::vector<Real> thickness{1.5, 0.3, 2.4, 3.0};
 
-    // Build the device
+    // Build the device --> for now materials are not wavelength dependent
     Device device(Nx, Ny, thickness.size(), Lx, Ly, er, ur, thickness, Nx_harmonics, Ny_harmonics);
-
-    // Build all the sources that we will simulate
-    size_t length = 100;  // # of sources to simulate
-
-    std::vector<Real> lambda0_v(length);
-    std::vector<Real> k0_v(length);
-    Real lambda_start = 1.0;
-    Real lambda_end = 2.0;
-    // If length is 1, just set it to the lambda_start value to avoid division by zero
-    if (length == 1)
-    {
-        lambda0_v[0] = lambda_start;
-        k0_v[0] = 2 * M_PI / lambda0_v[0];
-    }
-    else 
-    {
-        Real step = (lambda_end - lambda_start) / (length - 1);
-        for (size_t i = 0; i < length; ++i) 
-        {
-            lambda0_v[i] = lambda_start + i * step;
-            k0_v[i] = 2 * M_PI / lambda0_v[i];
-        }
-    }
-
-    Real theta = M_PI / 6.0;
-    std::vector<Real> theta_v(length, theta); // All thetas are the same for now
-    Real phi = M_PI / 12.0;
-    std::vector<Real> phi_v(length, phi); // All phis are the same for now
-    Real pte = 0.0; // TE pol
-    std::vector<Real> pte_v(length, pte); // All ptes are the same for now
-    Real ptm = 1.0; // TM pol
-    std::vector<Real> ptm_v(length, ptm); // All ptms are the same for now
-    Source source(lambda0_v, k0_v, theta_v, phi_v, pte_v, ptm_v);
-
 
     // Build reflection and transmission regions --> for now the materials are non wavelength dependent, extension to wavelength dependent materials is possible
     Complex er_ref(2.0, 0.0);
@@ -105,6 +71,41 @@ int main()
     Complex er_trn(9.0, 0.0);
     Complex ur_trn(1.0, 0.0);
     RCWAParams params(Nx_harmonics, Ny_harmonics, er_ref, ur_ref, er_trn, ur_trn);
+
+    // Build all the sources that we will simulate
+    size_t num_wavelengths = 100;  // # of sources to simulate
+
+    std::vector<Real> lambda0_v(num_wavelengths);
+    std::vector<Real> k0_v(num_wavelengths);
+    Real lambda_start = 1.0;
+    Real lambda_end = 2.0;
+    // If num_wavelengths is 1, just set it to the lambda_start value to avoid division by zero
+    if (num_wavelengths == 1)
+    {
+        lambda0_v[0] = lambda_start;
+        k0_v[0] = 2 * M_PI / lambda0_v[0];
+    }
+    else 
+    {
+        Real step = (lambda_end - lambda_start) / (num_wavelengths - 1);
+        for (int i = 0; i < num_wavelengths; ++i) 
+        {
+            lambda0_v[i] = lambda_start + i * step;
+            k0_v[i] = 2 * M_PI / lambda0_v[i];
+        }
+    }
+
+    Real theta = M_PI / 6.0;
+    std::vector<Real> theta_v(num_wavelengths, theta); // All thetas are the same for now
+    Real phi = M_PI / 12.0;
+    std::vector<Real> phi_v(num_wavelengths, phi); // All phis are the same for now
+    Real pte = 0.0; // TE pol
+    std::vector<Real> pte_v(num_wavelengths, pte); // All ptes are the same for now
+    Real ptm = 1.0; // TM pol
+    std::vector<Real> ptm_v(num_wavelengths, ptm); // All ptms are the same for now
+    Source source(lambda0_v, k0_v, theta_v, phi_v, pte_v, ptm_v);
+
+
 
     // CUDA
 
