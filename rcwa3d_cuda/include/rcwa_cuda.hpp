@@ -67,14 +67,24 @@ struct RCWAParams
     }
 };
 
-// struct that defines the cuda stream properties
+// struct that defines one worker: a host thread drives one stream with its own handles and buffers on one GPU
 struct StreamWorker
 {
-    cudaStream_t stream;
-    cufftHandle plan;      // cufftSetStream(plan, stream)
-    cublasHandle_t blas;   // cublasSetStream(blas, stream)
-    cusolverDnHandle_t solver;
-    // device buffers: er, ur, erc, urc, S-matrices...
+    cudaStream_t stream{};
+    cufftHandle plan{};          // bound to stream in InitWorker
+    cublasHandle_t blas{};       // bound to stream in InitWorker
+    cusolverDnHandle_t solver{}; // bound to stream in InitWorker
+    // pinned host buffers
+    cuda_Complex_d* h_er{};
+    cuda_Complex_d* h_ur{};
+    cuda_Complex_d* h_erc{};     // testing only: erc of this worker's first wavelength
+    cuda_Complex_d* h_urc{};
+    bool has_debug{};            // testing only: h_erc/h_urc are filled
+    // device buffers
+    cuda_Complex_d* d_er{};
+    cuda_Complex_d* d_ur{};
+    cuda_Complex_d* d_erc{};
+    cuda_Complex_d* d_urc{};
 };
 
 // Function that performs FFT and normalization on the device

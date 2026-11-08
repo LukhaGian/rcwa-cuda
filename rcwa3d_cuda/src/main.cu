@@ -109,6 +109,15 @@ int main()
 
     // CUDA
 
+    int num_gpus = 0;
+    CHECK(cudaGetDeviceCount(&num_gpus));
+    for (int g = 0; g < num_gpus; ++g) // each worker will set its own gpu
+    {
+        CHECK(cudaSetDevice(g));
+        CHECK(cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync)); // waiting threads sleep instead of spinning
+    }
+    CHECK(cudaSetDevice(0)); // the current single-stream code below runs on GPU 0
+
     // Create stream
     cudaStream_t stream;
     CHECK(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking)); // Create a non-blocking stream wrt legacy default stream
@@ -161,6 +170,8 @@ int main()
     // Create a cuFFT plan 
     CHECK(cufftPlanMany(&plan, rank, rank_dim, inembed, istride, idist, onembed, ostride, odist, CUFFT_Z2Z, thickness.size()));
 
+    // Target the specific stream instance for this cuFFT plan configuration
+    CHECK(cufftSetStream(plan, stream));
     // Perform convolution
     convMat_cu(plan, d_er_ptr, d_ur_ptr, d_erc_ptr, d_urc_ptr, Nx, Ny, thickness.size(), Nx_harmonics, Ny_harmonics, Q, PQ, stream);
 

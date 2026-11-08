@@ -6,10 +6,9 @@ void convMat_cu(cufftHandle& plan, cuda_Complex_d* d_er_ptr, cuda_Complex_d* d_u
     Function that computes the convolution matrices erc and urc (pointers d_erc_ptr and d_urc_ptr) 
     applying a forward FFT, normalization and quandrant shift to er and ur (pointers d_er_ptr and d_ur_ptr)
     and then computing the convolution matrices (Toeplitz).
+    Note: The plan must already be bound to stream (cufftSetStream in InitWorker).
     */
 
-    // Target the specific stream instance for this cuFFT plan configuration
-    cufftSetStream(plan, stream);
 
     int thread_per_block = 256;
     int shift_blocks = ((Nx / 2) * (Ny / 2) * num_layers + thread_per_block - 1) / thread_per_block;
