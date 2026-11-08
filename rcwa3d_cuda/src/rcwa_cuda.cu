@@ -15,7 +15,6 @@ void convMat_cu(cufftHandle& plan, cuda_Complex_d* d_er_ptr, cuda_Complex_d* d_u
     int shift_blocks = ((Nx / 2) * (Ny / 2) * num_layers + thread_per_block - 1) / thread_per_block;
     int conv_blocks = (num_layers * PQ * PQ + thread_per_block - 1) / thread_per_block; // check what can be more optimal
 
-    // potentially merge the calls into a unique FFT and QuadShift
     CHECK(cufftExecZ2Z(plan, d_er_ptr, d_er_ptr, CUFFT_FORWARD));
     NormalizeQuadShiftFFT<<<shift_blocks, thread_per_block, 0, stream>>>(d_er_ptr, Nx, Ny, num_layers); // 256 threads, 32 threads per warp --> 8 warps per block
     CHECK(cudaGetLastError());
@@ -101,7 +100,7 @@ __global__ void convMatAssembly(cuda_Complex_d* fft_data, cuda_Complex_d* conv_d
             int f_offset = layer * Nx * Ny + ky * Nx + kx;
             conv_data[c_offset] = fft_data[f_offset];
         } 
-        else // to be checked thoroughly
+        else
             conv_data[c_offset] = make_cuDoubleComplex(0.0, 0.0);
     }
 }
