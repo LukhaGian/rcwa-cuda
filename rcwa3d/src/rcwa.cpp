@@ -187,15 +187,15 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     //                                                  view of Kx creates a temporary full dense matrix ==> to be checked if it is the best way to do it
     auto erc_partialPivLu = device.erc.at(layer).partialPivLu(); // do lu factorization only once
     Matrix erc_inv_Kx = erc_partialPivLu.solve(Kx.asDiagonal().toDenseMatrix()); // do lu factorization only once
-    std::cout << "erc_inv_Kx " << double((erc_inv_Kx.array() != 0.0).count()) / erc_inv_Kx.size() << '\n';
+    //std::cout << "erc_inv_Kx " << double((erc_inv_Kx.array() != 0.0).count()) / erc_inv_Kx.size() << '\n';
     Matrix erc_inv_Ky = erc_partialPivLu.solve(Ky.asDiagonal().toDenseMatrix());
-    std::cout << "erc_inv_Ky " << double((erc_inv_Ky.array() != 0.0).count()) / erc_inv_Ky.size() << '\n';
+    //std::cout << "erc_inv_Ky " << double((erc_inv_Ky.array() != 0.0).count()) / erc_inv_Ky.size() << '\n';
     // P_i
     P_i.block(0, 0, PQ, PQ) = Kx.asDiagonal() * erc_inv_Ky; // top left
     P_i.block(0, PQ, PQ, PQ) = device.urc.at(layer) - Kx.asDiagonal() * erc_inv_Kx; // top right
     P_i.block(PQ, 0, PQ, PQ) = Ky.asDiagonal() * erc_inv_Ky - device.urc.at(layer); // bottom left
     P_i.block(PQ, PQ, PQ, PQ) = (-Ky).asDiagonal() * erc_inv_Kx; // bottom right
-    std::cout << "P_i " << double((P_i.array() != 0.0).count()) / P_i.size() << '\n';
+    //std::cout << "P_i " << double((P_i.array() != 0.0).count()) / P_i.size() << '\n';
     // Q_i
     Matrix Q_i = Matrix::Zero(2*PQ, 2*PQ);
     auto urc_partialPivLu = device.urc.at(layer).partialPivLu(); // do lu factorization only once
@@ -205,9 +205,9 @@ ScatteringMatrix SMatrixLayer(int layer, const Device& device, const Source& sou
     Q_i.block(0, PQ, PQ, PQ) = device.erc.at(layer) - Kx.asDiagonal() * urc_inv_Kx;
     Q_i.block(PQ, 0, PQ, PQ) = Ky.asDiagonal() * urc_inv_Ky - device.erc.at(layer);
     Q_i.block(PQ, PQ, PQ, PQ) = (-Ky).asDiagonal() * urc_inv_Kx;
-    std::cout << "Q_i " << double((Q_i.array() != 0.0).count()) / Q_i.size() << '\n';
+    //std::cout << "Q_i " << double((Q_i.array() != 0.0).count()) / Q_i.size() << '\n';
     Matrix Omega2 = P_i * Q_i;
-    std::cout << "Omega2 " << double((Omega2.array() != 0.0).count()) / Omega2.size() << '\n';
+    //std::cout << "Omega2 " << double((Omega2.array() != 0.0).count()) / Omega2.size() << '\n';
 
     // solve eigenvalue problem Omega2 * x = lambda * x
     
@@ -270,7 +270,7 @@ ScatteringMatrix SMatrixReflection(const RCWAParams& params, const Vector& Kx, c
     Q_ref.block(block_size, 0, block_size, block_size) = bottom_left.asDiagonal();
     Q_ref.block(block_size, block_size, block_size, block_size) = (- Kx_Ky).asDiagonal(); // see comment above
     Q_ref /= params.ur_ref;
-    std::cout << "Q_ref " << double((Q_ref.array() != 0.0).count()) / Q_ref.size() << '\n';
+    //std::cout << "Q_ref " << double((Q_ref.array() != 0.0).count()) / Q_ref.size() << '\n';
 
     W_ref = Matrix::Identity(2*block_size, 2*block_size);
 
@@ -316,7 +316,7 @@ ScatteringMatrix SMatrixTransmission(const RCWAParams& params, const Vector& Kx,
     Q_trn.block(block_size, 0, block_size, block_size) = bottom_left.asDiagonal();
     Q_trn.block(block_size, block_size, block_size, block_size) = (- Kx_Ky).asDiagonal(); // see comment above
     Q_trn /= params.ur_trn;
-    std::cout << "Q_trn " << double((Q_trn.array() != 0.0).count()) / Q_trn.size() << '\n';
+    //std::cout << "Q_trn " << double((Q_trn.array() != 0.0).count()) / Q_trn.size() << '\n';
     
     W_trn = Matrix::Identity(2*block_size, 2*block_size);
 
