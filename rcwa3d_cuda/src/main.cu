@@ -172,11 +172,11 @@ int main()
     CHECK(cudaStreamSynchronize(stream)); // Synchronize the stream to ensure all operations are complete before proceeding
 
 
-    cufftDestroy(plan); // destroy plan --> maybe we want to keep it for later use, but for now we destroy it
-    cudaFree(d_er_ptr);
-    cudaFree(d_ur_ptr);
-    cudaFree(d_erc_ptr);
-    cudaFree(d_urc_ptr);
+    CHECK(cufftDestroy(plan)); // destroy plan --> maybe we want to keep it for later use, but for now we destroy it
+    CHECK(cudaFree(d_er_ptr));
+    CHECK(cudaFree(d_ur_ptr));
+    CHECK(cudaFree(d_erc_ptr));
+    CHECK(cudaFree(d_urc_ptr));
     CHECK(cudaStreamDestroy(stream)); // destroy the stream
 
     //////////////////////////////////////////////////
