@@ -474,3 +474,59 @@ EigenvalSolverResults extraction(Eigen::ComplexEigenSolver<Matrix>&& solver)
     return EigenvalSolverResults{solver.eigenvalues(), solver.eigenvectors()};
 }
 */
+
+Results RCWASolveWavelength(const Device& device, const Source& source, const RCWAParams& params)
+{
+    /*
+    Function that solves the RCWA problem for a given wavelength and returns the diffraction efficiencies.
+    Note: For now, materials do not depend on the wavelength, wil be implemented in the future. (remove const)
+    */
+    
+    // Declare Matrices and Vectors
+    int P = 2 * params.Nx_harmonics + 1;
+    int Q = 2 * params.Ny_harmonics + 1;
+    int PQ = P * Q;
+
+    std::vector<Complex> k_inc(3, Complex(0.0, 0.0));
+    Vector Kx = Vector::Zero(PQ);
+    Vector Ky = Vector::Zero(PQ);
+    Vector Kz_ref = Vector::Zero(PQ);
+    Vector Kz_trn = Vector::Zero(PQ);
+    Matrix W0 = Matrix::Zero(2*PQ, 2*PQ);
+    Matrix V0 = Matrix::Zero(2*PQ, 2*PQ);
+    Matrix W_ref = Matrix::Zero(2*PQ, 2*PQ);
+    Matrix W_trn = Matrix::Zero(2*PQ, 2*PQ);
+
+    // Wave vector expansion and gap medium
+    ComputeWaveVectors(device, source, params, k_inc, Kx, Ky, Kz_ref, Kz_trn);
+    GapMedium(Kx, Ky, W0, V0);
+    // Initialize S-Matrix for the device
+    ScatteringMatrix S_device = SMatrixInit(params.Nx_harmonics, params.Ny_harmonics); // Initialize S_device S-Matrix
+    ScatteringMatrix S_layer = ScatteringMatrix(Matrix::Zero(2*PQ, 2*PQ), Matrix::Zero(2*PQ, 2*PQ), Matrix::Zero(2*PQ, 2*PQ), Matrix::Zero(2*PQ, 2*PQ));
+    
+    // Loop over each layer of the device and compute the scattering matrix for that layer, then combine it with the overall device scattering matrix using the Redheffer product.
+    for (int layer = 0; layer < device.num_layers; ++layer)
+    {
+        //std::cout << "Layer " << layer << '\n';
+        S_layer = SMatrixLayer(layer, device, source, params, Kx, Ky, W0, V0);
+        S_device = RedhefferProduct(S_device, S_layer);  
+    }
+    //std::cout << "Reflection" << '\n';
+    ScatteringMatrix S_ref = SMatrixReflection(params, Kx, Ky, Kz_ref, W0, V0, W_ref);
+    //std::cout << "Transmission" << '\n';
+    ScatteringMatrix S_trn = SMatrixTransmission(params, Kx, Ky, Kz_trn, W0, V0, W_trn);
+
+    ScatteringMatrix S_global = RedhefferProduct(S_ref, S_device);
+    S_global = RedhefferProduct(S_global, S_trn);
+
+    Vector csrc(2*PQ);
+    ComputeSourceModeCoeff(source, params, k_inc, W_ref, csrc);
+    Vector r = Vector::Zero(3*PQ);
+    ComputeReflectedField(params, S_global, csrc, Kx, Ky, Kz_ref, W_ref, r);
+    Vector t = Vector::Zero(3*PQ);
+    ComputeTransmittedField(params, S_global, csrc, Kx, Ky, Kz_trn, W_trn, t);
+
+    Results results = ComputeDiffractionEfficiencies(params, r, t, k_inc, Kz_ref, Kz_trn);
+
+    return results;
+}

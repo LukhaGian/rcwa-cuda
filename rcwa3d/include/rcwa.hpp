@@ -140,6 +140,8 @@ void ComputeTransmittedField(const RCWAParams& params, const ScatteringMatrix& S
 // Compute Diffraction Efficiencies
 Results ComputeDiffractionEfficiencies(const RCWAParams& params, const Vector& r, const Vector& t, const std::vector<Complex>& k_inc, const Vector& Kz_ref, const Vector& Kz_trn);
 
+// Main RCWA Solver function
+Results RCWASolveWavelength(const Device& device, const Source& source, const RCWAParams& params);
 
 // Utility functions
 // ======================================================================================

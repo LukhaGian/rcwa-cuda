@@ -4,14 +4,14 @@
 
 int main()
 {
-     #if defined(EIGEN_USE_BLAS)
-        std::cout << "Eigen is configured to use external BLAS!\n";
+    #if defined(EIGEN_USE_BLAS)
+        std::cout << "Eigen is configured to use external BLAS.\n";
     #else
         std::cout << "Eigen is NOT using external BLAS.\n";
     #endif
 
     #if defined(EIGEN_USE_LAPACKE)
-        std::cout << "Eigen is configured to use LAPACKE!\n";
+        std::cout << "Eigen is configured to use LAPACKE.\n";
     #else
         std::cout << "Eigen is NOT using LAPACKE.\n";
     #endif
@@ -86,20 +86,6 @@ int main()
     Complex ur_trn(1.0, 0.0);
     RCWAParams params(Nx_harmonics, Ny_harmonics, er_ref, ur_ref, er_trn, ur_trn);
 
-    // Declare Matrices and Vectors
-    int P = 2 * params.Nx_harmonics + 1;
-    int Q = 2 * params.Ny_harmonics + 1;
-    int PQ = P * Q;
-
-    std::vector<Complex> k_inc(3, Complex(0.0, 0.0));
-    Vector Kx = Vector::Zero(PQ);
-    Vector Ky = Vector::Zero(PQ);
-    Vector Kz_ref = Vector::Zero(PQ);
-    Vector Kz_trn = Vector::Zero(PQ);
-    Matrix W0 = Matrix::Zero(2*PQ, 2*PQ); // Some matrices are very sparse...
-    Matrix V0 = Matrix::Zero(2*PQ, 2*PQ);
-    Matrix W_ref = Matrix::Zero(2*PQ, 2*PQ);
-    Matrix W_trn = Matrix::Zero(2*PQ, 2*PQ);
 
     // Build ConvMats
     for (int layer = 0; layer < device.num_layers; ++layer)
@@ -107,7 +93,7 @@ int main()
         std::cout << "Convolution for Layer " << layer << '\n';
         device.erc.at(layer) = ConvMat(device.er, layer, device.Nx, device.Ny, params.Nx_harmonics, params.Ny_harmonics);
         device.urc.at(layer) = ConvMat(device.ur, layer, device.Nx, device.Ny, params.Nx_harmonics, params.Ny_harmonics);
-        if (layer == 3)
+        if (layer == -1)
         {
             std::cout << device.erc.at(layer) << '\n';
             std::cout << '\n';
@@ -115,35 +101,7 @@ int main()
         }
     }
 
-
-    ComputeWaveVectors(device, source, params, k_inc, Kx, Ky, Kz_ref, Kz_trn);
-    GapMedium(Kx, Ky, W0, V0);
-
-    ScatteringMatrix S_device = SMatrixInit(params.Nx_harmonics, params.Ny_harmonics); // Initialize S_device S-Matrix
-    ScatteringMatrix S_layer = ScatteringMatrix(Matrix::Zero(2*PQ, 2*PQ), Matrix::Zero(2*PQ, 2*PQ), Matrix::Zero(2*PQ, 2*PQ), Matrix::Zero(2*PQ, 2*PQ));
-    
-    for (int layer = 0; layer < device.num_layers; ++layer)
-    {
-        std::cout << "Layer " << layer << '\n';
-        S_layer = SMatrixLayer(layer, device, source, params, Kx, Ky, W0, V0);
-        S_device = RedhefferProduct(S_device, S_layer);  
-    }
-    std::cout << "Reflection" << '\n';
-    ScatteringMatrix S_ref = SMatrixReflection(params, Kx, Ky, Kz_ref, W0, V0, W_ref);
-    std::cout << "Transmission" << '\n';
-    ScatteringMatrix S_trn = SMatrixTransmission(params, Kx, Ky, Kz_trn, W0, V0, W_trn);
-
-    ScatteringMatrix S_global = RedhefferProduct(S_ref, S_device);
-    S_global = RedhefferProduct(S_global, S_trn);
-
-    Vector csrc(2*PQ);
-    ComputeSourceModeCoeff(source, params, k_inc, W_ref, csrc);
-    Vector r = Vector::Zero(3*PQ);
-    ComputeReflectedField(params, S_global, csrc, Kx, Ky, Kz_ref, W_ref, r);
-    Vector t = Vector::Zero(3*PQ);
-    ComputeTransmittedField(params, S_global, csrc, Kx, Ky, Kz_trn, W_trn, t);
-
-    Results results = ComputeDiffractionEfficiencies(params, r, t, k_inc, Kz_ref, Kz_trn);
+    Results results = RCWASolveWavelength(device, source, params);
     std::cout << "R + T = " << results.R_tot << " + " << results.T_tot << " = " << results.R_tot + results.T_tot<< '\n';
 
     return 0;
