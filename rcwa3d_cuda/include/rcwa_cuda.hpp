@@ -70,16 +70,17 @@ struct RCWAParams
 // struct that defines one worker: a host thread drives one stream with its own handles and buffers on one GPU
 struct StreamWorker
 {
+    int gpu {};
     cudaStream_t stream{};
-    cufftHandle plan{};          // bound to stream in InitWorker
-    cublasHandle_t blas{};       // bound to stream in InitWorker
+    cufftHandle plan{}; // bound to stream in InitWorker
+    cublasHandle_t blas{}; // bound to stream in InitWorker
     cusolverDnHandle_t solver{}; // bound to stream in InitWorker
     // pinned host buffers
     cuda_Complex_d* h_er{};
     cuda_Complex_d* h_ur{};
-    cuda_Complex_d* h_erc{};     // testing only: erc of this worker's first wavelength
+    cuda_Complex_d* h_erc{}; // testing only: erc of this worker's first wavelength
     cuda_Complex_d* h_urc{};
-    bool has_debug{};            // testing only: h_erc/h_urc are filled
+    bool has_debug{}; // testing only: h_erc/h_urc are filled
     // device buffers
     cuda_Complex_d* d_er{};
     cuda_Complex_d* d_ur{};
