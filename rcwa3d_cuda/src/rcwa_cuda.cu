@@ -1,5 +1,5 @@
 #include "rcwa_cuda.hpp"
-#include<cstring> // std::memcpy
+#include <cstring> // std::memcpy
 
 
 void InitWorker(StreamWorker& w, int gpu, const Device& device, const RCWAParams& params, bool debug)
