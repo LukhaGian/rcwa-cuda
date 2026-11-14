@@ -3,6 +3,7 @@
 #include <iostream>
 #include <thread> // for std::thread
 #include <functional> // for std::ref and std::cref, avoid expensive copies 
+#include <chrono> // timing
 
 int main()
 {
@@ -130,10 +131,10 @@ int main()
     When you pass arguments to a std::thread constructor, it internally copies or moves 
     all arguments into the new thread's memory space, even if your target function takes a reference.
     */
-
+    const auto wall_start = std::chrono::steady_clock::now();
     std::thread t(RunWorker, std::ref(worker), std::cref(device), std::cref(source), std::cref(params), std::ref(next_wavelength));
     t.join(); // it locks the calling thread until the worker thread finishes execution
-    
+    const double wall_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - wall_start).count();
     // Convolution results
     const auto* erc = reinterpret_cast<const Complex*>(worker.h_erc); // raw pointer
     const auto* urc = reinterpret_cast<const Complex*>(worker.h_urc);
@@ -170,9 +171,10 @@ int main()
         std::cout << "Size of urc " << convmat_elements << '\n'; 
         for (size_t i = 3*(PQ*PQ); i < 4*(PQ*PQ); ++i) 
             std::cout << urc[i] << '\n';
-    }
+    } 
 
     DestroyWorker(worker);
+    std::cout << "wall_s: " << wall_s << '\n';
     
     return 0;
 }
