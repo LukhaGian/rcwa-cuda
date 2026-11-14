@@ -73,7 +73,7 @@ int main()
     RCWAParams params(Nx_harmonics, Ny_harmonics, er_ref, ur_ref, er_trn, ur_trn);
 
     // Build all the sources that we will simulate
-    size_t num_wavelengths = 100;  // # of sources to simulate
+    int num_wavelengths = 100;  // # of sources to simulate
 
     std::vector<Real> lambda0_v(num_wavelengths);
     std::vector<Real> k0_v(num_wavelengths);
@@ -120,7 +120,8 @@ int main()
 
     std::atomic<int> next_wavelength{0};
     StreamWorker worker;
-    InitWorker(worker, 0, device, params, /*debug=*/true);
+    bool debug = true;
+    InitWorker(worker, 0, device, params, /*debug=*/debug);
     RunWorker(worker, device, source, params, next_wavelength); // will be moved to std::thread
     
     // Convolution results
@@ -149,20 +150,15 @@ int main()
     }
     */
     // convMat, Toeplitz
-    const size_t convmat_elements = static_cast<size_t>(PQ) * PQ * device.num_layers;
-    std::cout << "Size of erc " << convmat_elements << '\n';
-
-    for (size_t i = 0; i < PQ*PQ*thickness.size(); ++i) 
+    if (debug)
     {
-        if (i >= 3*(PQ*PQ) && i < 4*(PQ*PQ))
-            std::cout << erc[i] << '\n';
-    }
-    std::cout << "----------------------------------------" << '\n';
-    std::cout << "Size of urc " << convmat_elements << '\n'; 
-
-    for (size_t i = 0; i < PQ*PQ*thickness.size(); ++i) 
-    {
-        if (i >= 3*(PQ*PQ) && i < 4*(PQ*PQ))
+        const size_t convmat_elements = static_cast<size_t>(PQ) * PQ * device.num_layers;
+        std::cout << "Size of erc " << convmat_elements << '\n';
+        for (size_t i = 3*(PQ*PQ); i < 4*(PQ*PQ); ++i) 
+                std::cout << erc[i] << '\n';
+        std::cout << "----------------------------------------" << '\n';
+        std::cout << "Size of urc " << convmat_elements << '\n'; 
+        for (size_t i = 3*(PQ*PQ); i < 4*(PQ*PQ); ++i) 
             std::cout << urc[i] << '\n';
     }
 
