@@ -111,85 +111,23 @@ int main()
 
     int num_gpus = 0;
     CHECK(cudaGetDeviceCount(&num_gpus));
-    for (int g = 0; g < num_gpus; ++g) // each worker will set its own gpu
+    for (int g = 0; g < num_gpus; ++g)
     {
         CHECK(cudaSetDevice(g));
         CHECK(cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync)); // waiting threads sleep instead of spinning
     }
-    CHECK(cudaSetDevice(0)); // the current single-stream code below runs on GPU 0
-
-    // Create stream
-    cudaStream_t stream;
-    CHECK(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking)); // Create a non-blocking stream wrt legacy default stream
 
 
-    // sizeof() returns a size_t, so no need for explicit cast
-    const size_t total_bytes_FFT = sizeof(cuda_Complex_d) * Nx * Ny * thickness.size();
-    const size_t convMat_elements = static_cast<size_t>(PQ) * PQ * thickness.size();
-    const size_t total_bytes_convMat = sizeof(cuda_Complex_d) * convMat_elements;
-
-    // Host pointers
-    // Safe pointer cast
-    cuda_Complex_d* h_er_ptr = reinterpret_cast<cuda_Complex_d*>(er.data()); // layout compatibile types, .data() since we want to point to the underlying data, not the wrapper 
-    //std::cout << "Pointer to er array: " << static_cast<void*>(h_er_ptr) << std::endl;
-    cuda_Complex_d* h_ur_ptr = reinterpret_cast<cuda_Complex_d*>(ur.data()); // layout compatibile types
-    //std::cout << "Pointer to ur array: " << static_cast<void*>(h_ur_ptr) << std::endl;
-    std::vector<Complex> h_erc(convMat_elements);
-    std::vector<Complex> h_urc(convMat_elements);
-    cuda_Complex_d* h_erc_ptr = reinterpret_cast<cuda_Complex_d*>(h_erc.data()); // allocate host side memory
-    cuda_Complex_d* h_urc_ptr = reinterpret_cast<cuda_Complex_d*>(h_urc.data());
-
-    // Device pointers
-    cuda_Complex_d* d_er_ptr = nullptr;
-    cuda_Complex_d* d_ur_ptr = nullptr;
-    cuda_Complex_d* d_erc_ptr = nullptr;
-    cuda_Complex_d* d_urc_ptr = nullptr;
+    std::atomic<int> next_wavelength{0};
+    StreamWorker worker;
+    InitWorker(worker, 0, device, params, /*debug=*/true);
+    RunWorker(worker, device, source, params, next_wavelength); // will be moved to std::thread
     
-    // Allocate memory on the GPU for er and ur matrices (will become FFTs)
-    CHECK(cudaMalloc(reinterpret_cast<void**>(&d_er_ptr), total_bytes_FFT));
-    CHECK(cudaMalloc(reinterpret_cast<void**>(&d_ur_ptr), total_bytes_FFT));
-    // Copy data from host to device in asynchronous mode using the created stream
-    CHECK(cudaMemcpyAsync(d_er_ptr, h_er_ptr, total_bytes_FFT, cudaMemcpyHostToDevice, stream));
-    CHECK(cudaMemcpyAsync(d_ur_ptr, h_ur_ptr, total_bytes_FFT, cudaMemcpyHostToDevice, stream));
-    // Allocate memory on the GPU for convolution matrices erc and urc 
-    CHECK(cudaMalloc(reinterpret_cast<void**>(&d_erc_ptr), total_bytes_convMat));
-    CHECK(cudaMalloc(reinterpret_cast<void**>(&d_urc_ptr), total_bytes_convMat));
-
-    // cuFFT plan
-    cufftHandle plan;
-
-    int rank = 2; //2D FFT
-    int* inembed = NULL;
-    int* onembed = NULL;
-    int rank_dim[2] = {Ny, Nx};
-    int istride = 1;
-    int idist = Nx*Ny;
-    int ostride = 1;
-    int odist = Nx*Ny;
-
-    // Create a cuFFT plan 
-    CHECK(cufftPlanMany(&plan, rank, rank_dim, inembed, istride, idist, onembed, ostride, odist, CUFFT_Z2Z, thickness.size()));
-
-    // Target the specific stream instance for this cuFFT plan configuration
-    CHECK(cufftSetStream(plan, stream));
-    // Perform convolution
-    convMat_cu(plan, d_er_ptr, d_ur_ptr, d_erc_ptr, d_urc_ptr, Nx, Ny, thickness.size(), Nx_harmonics, Ny_harmonics, Q, PQ, stream);
+    // Convolution results
+    const auto* erc = reinterpret_cast<const Complex*>(worker.h_erc); // raw pointer
+    const auto* urc = reinterpret_cast<const Complex*>(worker.h_urc);
 
 
-    //CHECK(cudaMemcpy(h_er_ptr, d_er_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost));
-    //CHECK(cudaMemcpy(h_ur_ptr, d_ur_ptr, total_bytes_FFT, cudaMemcpyDeviceToHost));
-    CHECK(cudaMemcpyAsync(h_erc_ptr, d_erc_ptr, total_bytes_convMat, cudaMemcpyDeviceToHost, stream));
-    CHECK(cudaMemcpyAsync(h_urc_ptr, d_urc_ptr, total_bytes_convMat, cudaMemcpyDeviceToHost, stream));
-
-    CHECK(cudaStreamSynchronize(stream)); // Synchronize the stream to ensure all operations are complete before proceeding
-
-
-    CHECK(cufftDestroy(plan)); // destroy plan --> maybe we want to keep it for later use, but for now we destroy it
-    CHECK(cudaFree(d_er_ptr));
-    CHECK(cudaFree(d_ur_ptr));
-    CHECK(cudaFree(d_erc_ptr));
-    CHECK(cudaFree(d_urc_ptr));
-    CHECK(cudaStreamDestroy(stream)); // destroy the stream
 
     //////////////////////////////////////////////////
     // TESTING
@@ -211,22 +149,24 @@ int main()
     }
     */
     // convMat, Toeplitz
-    std::cout << "Size of erc " << h_erc.size() << '\n';
+    const size_t convmat_elements = static_cast<size_t>(PQ) * PQ * device.num_layers;
+    std::cout << "Size of erc " << convmat_elements << '\n';
 
     for (size_t i = 0; i < PQ*PQ*thickness.size(); ++i) 
     {
         if (i >= 3*(PQ*PQ) && i < 4*(PQ*PQ))
-            std::cout << h_erc[i] << '\n';
+            std::cout << erc[i] << '\n';
     }
     std::cout << "----------------------------------------" << '\n';
-    std::cout << "Size of urc " << h_urc.size() << '\n'; 
+    std::cout << "Size of urc " << convmat_elements << '\n'; 
 
     for (size_t i = 0; i < PQ*PQ*thickness.size(); ++i) 
     {
         if (i >= 3*(PQ*PQ) && i < 4*(PQ*PQ))
-            std::cout << h_urc[i] << '\n';
+            std::cout << urc[i] << '\n';
     }
 
+    DestroyWorker(worker);
     
     return 0;
 }
