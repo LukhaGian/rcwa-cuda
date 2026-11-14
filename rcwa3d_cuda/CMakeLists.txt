@@ -10,7 +10,7 @@ set(CMAKE_CUDA_ARCHITECTURES 75 80 90) # T4 (sm_75) A100 (sm_80) and H100 (sm_90
 # Find the CUDA toolkit, which provides the CUDA::cufft, CUDA::cusolver and CUDA::cublas targets
 find_package(CUDAToolkit REQUIRED)
 
-# Fint the OS's threading libraries for Threads::Threads
+# Find the OS's threading libraries for Threads::Threads
 find_package(Threads REQUIRED)
 
 # Standalone CUDA executable
