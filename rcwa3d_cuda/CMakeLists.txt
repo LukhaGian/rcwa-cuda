@@ -10,6 +10,9 @@ set(CMAKE_CUDA_ARCHITECTURES 75 80 90) # T4 (sm_75) A100 (sm_80) and H100 (sm_90
 # Find the CUDA toolkit, which provides the CUDA::cufft, CUDA::cusolver and CUDA::cublas targets
 find_package(CUDAToolkit REQUIRED)
 
+# Fint the OS's threading libraries for Threads::Threads
+find_package(Threads REQUIRED)
+
 # Standalone CUDA executable
 add_executable(rcwa_cu_main src/main.cu)
 # Tell CMake to enable separable compilation for the CUDA executable and then perform a CUDA device-link step
@@ -26,8 +29,9 @@ target_include_directories(rcwa_cu_main PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include # Helpers shared with the other build
 )
 
-# Add the cuFFT library linking step
-target_link_libraries(rcwa_cu_main PRIVATE CUDA::cufft CUDA::cusolver CUDA::cublas)
+# Add the CUDA + Threads libraries: linking step
+target_link_libraries(rcwa_cu_main PRIVATE CUDA::cufft CUDA::cusolver CUDA::cublas Threads::Threads)
+
 
 # Optimization flags for nvcc
 target_compile_options(rcwa_cu_main PRIVATE

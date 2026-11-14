@@ -1,7 +1,8 @@
 #include "rcwa_cuda.hpp"
-#include <iostream>
 #include <cuda_runtime.h>
-
+#include <iostream>
+#include <thread> // for std::thread
+#include <functional> // for std::ref and std::cref, avoid expensive copies 
 
 int main()
 {
@@ -122,7 +123,16 @@ int main()
     StreamWorker worker;
     bool debug = true;
     InitWorker(worker, 0, device, params, /*debug=*/debug);
-    RunWorker(worker, device, source, params, next_wavelength); // will be moved to std::thread
+    /*
+    RunWorker in std::thread. 
+    Here we use std::ref since it allows us to pass by reference to std::thread (by default it copies the data even if the thread function uses references). 
+    Similarly, std::cref passes its argument by const reference.
+    When you pass arguments to a std::thread constructor, it internally copies or moves 
+    all arguments into the new thread's memory space, even if your target function takes a reference.
+    */
+
+    std::thread t(RunWorker, std::ref(worker), std::cref(device), std::cref(source), std::cref(params), std::ref(next_wavelength));
+    t.join(); // it locks the calling thread until the worker thread finishes execution
     
     // Convolution results
     const auto* erc = reinterpret_cast<const Complex*>(worker.h_erc); // raw pointer
