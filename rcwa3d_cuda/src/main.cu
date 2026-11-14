@@ -163,13 +163,16 @@ int main()
     // convMat, Toeplitz
     if (debug)
     {
+        int check_layer = device.num_layers;
+        size_t lower_bound = (check_layer-1) * static_cast<size_t>(PQ) * PQ; // it should be fine over P ~ 50ish
+        size_t upper_bound = (check_layer) * static_cast<size_t>(PQ) * PQ;
         const size_t convmat_elements = static_cast<size_t>(PQ) * PQ * device.num_layers;
         std::cout << "Size of erc " << convmat_elements << '\n';
-        for (size_t i = 3*(PQ*PQ); i < 4*(PQ*PQ); ++i) 
+        for (size_t i = lower_bound; i < upper_bound; ++i) 
                 std::cout << erc[i] << '\n';
         std::cout << "----------------------------------------" << '\n';
         std::cout << "Size of urc " << convmat_elements << '\n'; 
-        for (size_t i = 3*(PQ*PQ); i < 4*(PQ*PQ); ++i) 
+        for (size_t i = lower_bound; i < upper_bound; ++i) 
             std::cout << urc[i] << '\n';
     } 
 
