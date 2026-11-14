@@ -5,7 +5,7 @@ set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 # Target SM arch for NVIDIA GPUs.
-set(CMAKE_CUDA_ARCHITECTURES 75; 80; 90) # A100 (sm_80) and H100 (sm_90)
+set(CMAKE_CUDA_ARCHITECTURES 75 80 90) # T4 (sm_75) A100 (sm_80) and H100 (sm_90)
 
 # Find the CUDA toolkit, which provides the CUDA::cufft, CUDA::cusolver and CUDA::cublas targets
 find_package(CUDAToolkit REQUIRED)
