@@ -65,7 +65,7 @@ void InitWorker(StreamWorker& w, int gpu, const Device& device, const RCWAParams
 void RunWorker(StreamWorker& w, const Device& device, const Source& source, const RCWAParams& params, std::atomic<int>& next_wavelength)
 {
     /*
-    Worker pulls wavelenth indices from the shared counter until none are left and
+    Worker pulls wavelength indices from the shared counter until none are left and
     it solves each one of them  on this worker's stream.
     For now only the convolution matrices are computed.
     */
