@@ -96,6 +96,7 @@ void RunWorker(StreamWorker& w, const Device& device, const Source& source, cons
             w.has_debug = true;
         }
         CHECK(cudaStreamSynchronize(w.stream)); // wavelength i is complete
+        ++w.num_solved;
     }
 }
 

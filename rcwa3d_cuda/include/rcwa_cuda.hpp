@@ -72,6 +72,7 @@ struct RCWAParams
 struct StreamWorker
 {
     int gpu{}; // worker's assigned GPU
+    int num_solved{0}; // no. of wavelengths solved by the worker
     cudaStream_t stream{};
     cufftHandle plan{}; // bound to stream in InitWorker
     cublasHandle_t blas{}; // bound to stream in InitWorker
