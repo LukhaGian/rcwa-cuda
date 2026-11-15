@@ -1,5 +1,13 @@
+#ifdef __CUDACC__ // macro defined by nvcc during compilation of cuda code
+#define RCWA_HD __host__ __device__
+#else // standard cpp compiler
+#define RCWA_HD // empty
+#endif
+
 #pragma once
 
+//#include <cuda_runtime.h>
+//#include <cstdio> // for default handling case in InsideShape
 #include <vector>
 #include <complex>
 #include <cmath>
@@ -7,6 +15,66 @@
 
 using Real = double;
 using Complex = std::complex<Real>;
+
+enum ShapeType : int {SHAPE_UNIFORM, SHAPE_X, SHAPE_Y, 
+                      SHAPE_TRIANGLE, SHAPE_TRIANGLE_SHIFTED, SHAPE_SQUARE};
+
+// Generalized struct that describes the shape
+struct ShapeDesc
+{
+    int type;
+    double p0, p1, p2, p3, p4, p5; // shape parameters, for example x_shift, y_shift
+    int dx; // compute once Lx / Nx -> non need to recompute for each thread call
+    int dy; // compute once Ly / Ny
+    int value_inside;
+    int value_outside;
+};
+
+RCWA_HD inline bool InisideShape(const ShapeDesc& s, int ix, int iy, int Nx, int Ny, double Lx, double Ly)
+{
+    switch(s.type)
+    {
+        case SHAPE_UNIFORM:
+            return true;
+            break;
+        case SHAPE_X:
+            return (std::abs(ix - Lx/2.0) <= 0.25);
+            break;
+        case SHAPE_Y:
+            return (std::abs(iy - Ly/2.0) <= 0.25);
+            break;
+        case SHAPE_TRIANGLE:
+            // s.p0 = y_rel
+            // s.p1 = w
+            // s.p2 = x
+            // s.p3 = xc
+            // s.p4 = half_base
+            return ((s.p0 >= 0) && (s.p0 <= s.p1) && (std::abs(s.p2 - s.p3) <= s.p4));
+            break;
+        case SHAPE_TRIANGLE_SHIFTED:
+            // s.p0 = y_rel
+            // s.p1 = w
+            // s.p2 = x
+            // s.p3 = xc
+            // s.p4 = half_base
+            return ((s.p0 >= 0) && (s.p0 <= s.p1) && (std::abs(s.p2 - s.p3) <= s.p4));
+            break;
+        case SHAPE_SQUARE:
+            // s.p0 = y_start
+            // s.p1 = y_end
+            // s.p2 = x_start
+            // s.p3 = x_end
+            return (iy >= s.p0 && iy < s.p1 && ix >= s.p2 && ix < s.p3);
+            break;
+        default:
+            return false;
+            // WIP: calling __trap() (device only funct) in __host__ __device__ function is not allowed
+            //printf("CUDA Fatal Error: Invalid ShapeType (%d).\n", static_cast<int>(s.type));
+            //__trap(); // aborts kernel exec
+            break;
+    }
+}
+
 
 namespace layer
 {
