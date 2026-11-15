@@ -8,8 +8,8 @@
 int main()
 {
     // spatial grid for the layers
-    int Nx = 6; // make sure it's always even
-    int Ny = 6;
+    int Nx = 2048; // make sure it's always even
+    int Ny = 2048;
 
     int Nx_harmonics = 1;
     int Ny_harmonics = 1;
@@ -111,26 +111,52 @@ int main()
 
     // CUDA
 
-    int num_gpus = 0;
-    CHECK(cudaGetDeviceCount(&num_gpus));
+    int num_gpus = 0; // init variable
+    CHECK(cudaGetDeviceCount(&num_gpus)); // get the number of available gpus
+    std::cout << "no. of gpus: " << num_gpus << '\n';
     for (int g = 0; g < num_gpus; ++g)
     {
         CHECK(cudaSetDevice(g));
         CHECK(cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync)); // waiting threads sleep instead of spinning
     }
 
+    bool debug = true;
+    std::atomic<int> next_wavelength{0};
 
+
+    const int num_workers = num_gpus; // later: workers_per_gpu * num_gpus
+    // create a vector of workers
+    std::vector<StreamWorker> workers(num_workers);
+    // Initialize the workers
+    for (int i = 0; i < num_workers; ++i)
+        InitWorker(workers[i], i % num_gpus, device, params, debug && i == 0); // active debug params only for 0th worker 
+
+    // timing
+    const auto wall_start = std::chrono::steady_clock::now();
+    // vector of threads
+    std::vector<std::thread> threads;
+    threads.reserve(num_workers); // reserve space for all workers
+    // Run each worker
+    for (int k = 0; k < num_workers; ++k)
+        threads.emplace_back(RunWorker, std::ref(workers[k]), std::cref(device), std::cref(source), std::cref(params), std::ref(next_wavelength));
+    for (auto& t : threads)
+        t.join(); // it locks the calling thread until the worker thread finishes execution
+    const double wall_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - wall_start).count();
+
+
+
+    // Single worker
+    /*
     std::atomic<int> next_wavelength{0};
     StreamWorker worker;
     bool debug = true;
-    InitWorker(worker, 0, device, params, /*debug=*/debug);
-    /*
-    RunWorker in std::thread. 
-    Here we use std::ref since it allows us to pass by reference to std::thread (by default it copies the data even if the thread function uses references). 
-    Similarly, std::cref passes its argument by const reference.
-    When you pass arguments to a std::thread constructor, it internally copies or moves 
-    all arguments into the new thread's memory space, even if your target function takes a reference.
-    */
+    InitWorker(worker, 0, device, params, debug);
+    
+    // RunWorker in std::thread. 
+    // Here we use std::ref since it allows us to pass by reference to std::thread (by default it copies the data even if the thread function uses references). 
+    // Similarly, std::cref passes its argument by const reference.
+    // When you pass arguments to a std::thread constructor, it internally copies or moves 
+    // all arguments into the new thread's memory space, even if your target function takes a reference.
     const auto wall_start = std::chrono::steady_clock::now();
     std::thread t(RunWorker, std::ref(worker), std::cref(device), std::cref(source), std::cref(params), std::ref(next_wavelength));
     t.join(); // it locks the calling thread until the worker thread finishes execution
@@ -138,6 +164,7 @@ int main()
     // Convolution results
     const auto* erc = reinterpret_cast<const Complex*>(worker.h_erc); // raw pointer
     const auto* urc = reinterpret_cast<const Complex*>(worker.h_urc);
+    */
 
 
 
@@ -160,7 +187,8 @@ int main()
         std::cout << er[i] << '\n';
     }
     */
-    // convMat, Toeplitz
+    // convMat, Toeplitz single worker
+    /*
     if (debug)
     {
         int check_layer = device.num_layers;
@@ -178,6 +206,33 @@ int main()
 
     DestroyWorker(worker);
     std::cout << "wall_s: " << wall_s << '\n';
-    
+    */
+
+    // Print no. of wavelengths computed by each worker
+    for (int i = 0; i < num_workers; ++i)
+        std::cout << "worker no. " << i << ", num_solved: " << workers[i].num_solved << '\n';
+
+    // convMat, Toeplitz, multiple workers -> only 0th worker has debug enabled
+    // Convolution results for 0th worker
+    const auto* erc = reinterpret_cast<const Complex*>(workers[0].h_erc); // raw pointer
+    const auto* urc = reinterpret_cast<const Complex*>(workers[0].h_urc);
+    int check_layer = device.num_layers;
+    size_t lower_bound = (check_layer-1) * static_cast<size_t>(PQ) * PQ; // it should be fine over P ~ 50ish
+    size_t upper_bound = (check_layer) * static_cast<size_t>(PQ) * PQ;
+    const size_t convmat_elements = static_cast<size_t>(PQ) * PQ * device.num_layers;
+    std::cout << "Size of erc " << convmat_elements << '\n';
+    for (size_t i = lower_bound; i < upper_bound; ++i) 
+        std::cout << erc[i] << '\n';
+    std::cout << "----------------------------------------" << '\n';
+    std::cout << "Size of urc " << convmat_elements << '\n'; 
+    for (size_t i = lower_bound; i < upper_bound; ++i) 
+        std::cout << urc[i] << '\n';
+
+    std::cout << "wall_s: " << wall_s << '\n';
+
+    // Destroy workers
+    for (auto& w : workers)
+        DestroyWorker(w);
+
     return 0;
 }
