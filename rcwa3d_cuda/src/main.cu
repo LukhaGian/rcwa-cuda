@@ -176,37 +176,6 @@ int main()
     // CHECK(cudaMalloc(&p, size_t(1) << 50)); // 1 PB
 
 
-    // fft
-    /*
-    std::cout << "Size of er " << er.size() << '\n';
-
-    for (size_t i = 0; i < Nx*Ny*thickness.size(); ++i) 
-    {
-        if (i % (Nx*Ny) == 0)
-            std::cout << "Reached end of layer" << '\n';
-        std::cout << er[i] << '\n';
-    }
-    */
-    // convMat, Toeplitz single worker
-    /*
-    if (debug)
-    {
-        int check_layer = device.num_layers;
-        size_t lower_bound = (check_layer-1) * static_cast<size_t>(PQ) * PQ; // it should be fine over P ~ 50ish
-        size_t upper_bound = (check_layer) * static_cast<size_t>(PQ) * PQ;
-        const size_t convmat_elements = static_cast<size_t>(PQ) * PQ * device.num_layers;
-        std::cout << "Size of erc " << convmat_elements << '\n';
-        for (size_t i = lower_bound; i < upper_bound; ++i) 
-                std::cout << erc[i] << '\n';
-        std::cout << "----------------------------------------" << '\n';
-        std::cout << "Size of urc " << convmat_elements << '\n'; 
-        for (size_t i = lower_bound; i < upper_bound; ++i) 
-            std::cout << urc[i] << '\n';
-    } 
-
-    DestroyWorker(worker);
-    std::cout << "wall_s: " << wall_s << '\n';
-    */
 
     // Print no. of wavelengths computed by each worker
     for (int i = 0; i < num_workers; ++i)
@@ -217,7 +186,7 @@ int main()
     const auto* erc = reinterpret_cast<const Complex*>(workers[0].h_erc); // raw pointer
     const auto* urc = reinterpret_cast<const Complex*>(workers[0].h_urc);
     int check_layer = device.num_layers;
-    size_t lower_bound = (check_layer-1) * static_cast<size_t>(PQ) * PQ; // it should be fine over P ~ 50ish
+    size_t lower_bound = (check_layer-1) * static_cast<size_t>(PQ) * PQ;
     size_t upper_bound = (check_layer) * static_cast<size_t>(PQ) * PQ;
     const size_t convmat_elements = static_cast<size_t>(PQ) * PQ * device.num_layers;
     std::cout << "Size of erc " << convmat_elements << '\n';
