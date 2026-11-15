@@ -25,8 +25,8 @@ struct Device
     Real Ly{}; // unit cell dimension along Y axis
     // 3D arrays: er[iy][ix][layer] stored as flat vector er[layer * Nx * Ny + iy * Nx + ix] (row-major order)
     // spatial arrays
-    std::vector<Complex> er{};  // permittivity Ny × Nx x num_layers
-    std::vector<Complex> ur{};  // permeability Ny × Nx x num_layers
+    std::vector<Complex> er{};  //  TO BE SUBSTITUTED
+    std::vector<Complex> ur{};
     std::vector<Real> t{};   // thickness per layer, size num_layers
 
     Device(int Nx_, int Ny_, int num_layers_, Real Lx_, Real Ly_, const std::vector<Complex>& er_, 
