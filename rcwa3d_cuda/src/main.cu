@@ -182,20 +182,23 @@ int main()
         std::cout << "worker no. " << i << ", num_solved: " << workers[i].num_solved << '\n';
 
     // convMat, Toeplitz, multiple workers -> only 0th worker has debug enabled
-    // Convolution results for 0th worker
-    const auto* erc = reinterpret_cast<const Complex*>(workers[0].h_erc); // raw pointer
-    const auto* urc = reinterpret_cast<const Complex*>(workers[0].h_urc);
-    int check_layer = device.num_layers;
-    size_t lower_bound = (check_layer-1) * static_cast<size_t>(PQ) * PQ;
-    size_t upper_bound = (check_layer) * static_cast<size_t>(PQ) * PQ;
-    const size_t convmat_elements = static_cast<size_t>(PQ) * PQ * device.num_layers;
-    std::cout << "Size of erc " << convmat_elements << '\n';
-    for (size_t i = lower_bound; i < upper_bound; ++i) 
-        std::cout << erc[i] << '\n';
-    std::cout << "----------------------------------------" << '\n';
-    std::cout << "Size of urc " << convmat_elements << '\n'; 
-    for (size_t i = lower_bound; i < upper_bound; ++i) 
-        std::cout << urc[i] << '\n';
+    if (workers[0].has_debug)
+    {
+        // Convolution results for 0th worker
+        const auto* erc = reinterpret_cast<const Complex*>(workers[0].h_erc); // raw pointer
+        const auto* urc = reinterpret_cast<const Complex*>(workers[0].h_urc);
+        int check_layer = device.num_layers;
+        size_t lower_bound = (check_layer-1) * static_cast<size_t>(PQ) * PQ;
+        size_t upper_bound = (check_layer) * static_cast<size_t>(PQ) * PQ;
+        const size_t convmat_elements = static_cast<size_t>(PQ) * PQ * device.num_layers;
+        std::cout << "Size of erc " << convmat_elements << '\n';
+        for (size_t i = lower_bound; i < upper_bound; ++i) 
+            std::cout << erc[i] << '\n';
+        std::cout << "----------------------------------------" << '\n';
+        std::cout << "Size of urc " << convmat_elements << '\n'; 
+        for (size_t i = lower_bound; i < upper_bound; ++i) 
+            std::cout << urc[i] << '\n';
+    }
 
     std::cout << "wall_s: " << wall_s << '\n';
 
