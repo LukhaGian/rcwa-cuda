@@ -24,37 +24,19 @@ int main()
     // Build the device layers
     std::vector<std::vector<Complex>> er_layers = 
     {
-            /*
-            layer::triangle_pattern(Nx, Ny, Lx, Ly),
-            layer::x_pattern(Nx, Ny, Lx, Ly),
-            layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            layer::square_pattern(Nx, Ny, Complex(2.0, 0.0), Complex(5.0, 0.0)),
-            layer::y_pattern(Nx, Ny, Lx, Ly),
-            layer::uniform(Nx, Ny, Complex(4.0, 0.0)),
-            layer::square_pattern(Nx, Ny, Complex(7.0, 0.0), Complex(1.0, 0.0))
-            */
-            layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
-            layer::x_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
-            layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0))
+            legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
+            legacy_layer::x_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
+            legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
+            legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0))
 
 
     };
     std::vector<std::vector<Complex>> ur_layers = 
     {
-            /*
-            layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            layer::uniform(Nx, Ny, Complex(1.0, 0.0))
-            */
-            layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.35, 0.35, Complex(1.0, 0.0), Complex(5.0, 0.0)),
-            layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.2, 0.2, Complex(2.0, 0.0), Complex(8.0, 0.0))
+            legacy_layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.35, 0.35, Complex(1.0, 0.0), Complex(5.0, 0.0)),
+            legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
+            legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
+            legacy_layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.2, 0.2, Complex(2.0, 0.0), Complex(8.0, 0.0))
 
 
     };
