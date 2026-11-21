@@ -77,9 +77,10 @@ RCWA_HD inline bool InsideShape(const ShapeDesc& s, int idx, int idy, int Nx, in
 
 namespace layer
 {
-    inline std::vector<Complex> uniform(const ShapeDesc& s, int Nx, int Ny, double Lx, double Ly)
+
+    inline std::vector<Complex> build(const ShapeDesc& s, int Nx, int Ny, double Lx, double Ly)
     {
-        // Function that creates a uniform 2D array of size Nx x Ny with a given complex value
+        // Function that builds a layer based on s.
         std::vector<Complex> out(Nx * Ny, Complex(-1.0, -1.0));
         for (int iy = 0; iy < Ny; ++iy)
         {
@@ -90,93 +91,8 @@ namespace layer
                 }
         }
         return out;
-
+ 
     }
-
-
-    inline std::vector<Complex> x_pattern(const ShapeDesc& s, int Nx, int Ny, double Lx, double Ly)
-    {
-        std::vector<Complex> out(Nx * Ny, Complex(-1.0, -1.0));
-        for (int iy = 0; iy < Ny; ++iy)
-        {
-            for (int ix = 0; ix < Nx; ++ix)
-                {
-                    bool inside_square = InsideShape(s, ix, iy, Nx, Ny, Lx, Ly);
-                    out[iy * Nx + ix] = inside_square ? s.value_inside : s.value_outside;
-                }
-        }
-        return out;
-
-    }
-
-
-    inline std::vector<Complex> y_pattern(const ShapeDesc& s, int Nx, int Ny, double Lx, double Ly)
-    {
-        std::vector<Complex> out(Nx * Ny, Complex(-1.0, -1.0));
-        for (int iy = 0; iy < Ny; ++iy)
-        {
-            for (int ix = 0; ix < Nx; ++ix)
-                {
-                    bool inside_square = InsideShape(s, ix, iy, Nx, Ny, Lx, Ly);
-                    out[iy * Nx + ix] = inside_square ? s.value_inside : s.value_outside;
-                }
-        }
-        return out;
-
-    }
-
-
-    inline std::vector<Complex> triangle_pattern(const ShapeDesc& s, int Nx, int Ny, double Lx, double Ly)
-    {
-        std::vector<Complex> out(Nx * Ny, Complex(-1.0, -1.0));
-        for (int iy = 0; iy < Ny; ++iy)
-        {
-            for (int ix = 0; ix < Nx; ++ix)
-                {
-                    bool inside_triangle = InsideShape(s, ix, iy, Nx, Ny, Lx, Ly);
-                    out[iy * Nx + ix] = inside_triangle ? s.value_inside : s.value_outside;
-                }
-        }
-        return out;
-
-    }
-
-
-    inline std::vector<Complex> triangle_pattern_shifted(const ShapeDesc& s, int Nx, int Ny, double Lx, double Ly)
-    {
-        std::vector<Complex> out(Nx * Ny, Complex(-1.0, -1.0));
-        double x_shift = s.p1;
-        double y_shift = s.p2;
-        for (int iy = 0; iy < Ny; ++iy)
-        {
-            for (int ix = 0; ix < Nx; ++ix)
-                {                
-                    bool inside_triangle = InsideShape(s, ix, iy, Nx, Ny, Lx, Ly);
-                    out[iy * Nx + ix] = inside_triangle ? s.value_inside : s.value_outside;
-                }
-        }
-        return out;
-
-    }
-
-
-    inline std::vector<Complex> square_pattern(const ShapeDesc& s, int Nx, int Ny, double Lx, double Ly) 
-    {
-    
-        // Allocate the single 1D vector representing the entire Ny x Nx grid
-        std::vector<Complex> out(Nx * Ny, Complex(-1.0, -1.0));
-        for (int iy = 0; iy < Ny; ++iy) 
-        {
-            for (int ix = 0; ix < Nx; ++ix) 
-            {
-                bool inside_square = InsideShape(s, ix, iy, Nx, Ny, Lx, Ly);
-                out[iy * Nx + ix] = inside_square ? s.value_inside : s.value_outside;
-            }
-        }
-        return out;
-
-    }
-
 
     inline std::vector<Complex> stack(const std::vector<std::vector<Complex>>& layers)
     {

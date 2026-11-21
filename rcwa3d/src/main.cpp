@@ -38,10 +38,10 @@ int main()
    
     std::vector<std::vector<Complex>> er_layers = 
     {
-            layer::triangle_pattern(er_0, Nx, Ny, Lx, Ly),
-            layer::y_pattern(er_1, Nx, Ny, Lx, Ly),
-            layer::uniform(er_2, Nx, Ny, Lx, Ly),
-            layer::triangle_pattern(er_3, Nx, Ny, Lx, Ly)
+            layer::build(er_0, Nx, Ny, Lx, Ly),
+            layer::build(er_1, Nx, Ny, Lx, Ly),
+            layer::build(er_2, Nx, Ny, Lx, Ly),
+            layer::build(er_3, Nx, Ny, Lx, Ly)
             
             //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
             //legacy_layer::y_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
@@ -57,10 +57,10 @@ int main()
 
     std::vector<std::vector<Complex>> ur_layers = 
     {
-            layer::triangle_pattern_shifted(ur_0, Nx, Ny, Lx, Ly),
-            layer::uniform(ur_1, Nx, Ny, Lx, Ly),
-            layer::uniform(ur_2, Nx, Ny, Lx, Ly),
-            layer::square_pattern(ur_3, Nx, Ny, Lx, Ly)
+            layer::build(ur_0, Nx, Ny, Lx, Ly),
+            layer::build(ur_1, Nx, Ny, Lx, Ly),
+            layer::build(ur_2, Nx, Ny, Lx, Ly),
+            layer::build(ur_3, Nx, Ny, Lx, Ly)
             
             //legacy_layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.35, 0.35, Complex(1.0, 0.0), Complex(5.0, 0.0)),
             //legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
