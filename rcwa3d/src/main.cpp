@@ -30,18 +30,20 @@ int main()
     Real dx = Lx/Nx;
     Real dy = Ly/Ny;
 
+    std::vector<Complex> values{Complex(1.0, 0.0), Complex(2.0, 0.0), Complex(5.0, 0.0), Complex(6.0, 0.0), Complex(8.0, 0.0)};
+
     // Build the device layers
-    ShapeDesc er_0{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, Complex(2.0, 0.0), Complex(6.0, 0.0)};
-    ShapeDesc er_1{SHAPE_Y, -1.0, -1.0, -1.0, dx, dy, Complex(2.0, 0.0), Complex(6.0, 0.0)};
-    ShapeDesc er_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, Complex(1.0, 0.0), Complex(1.0, 0.0)};
-    ShapeDesc er_3{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, Complex(2.0, 0.0), Complex(6.0, 0.0)};
+    ShapeDesc er_0{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
+    ShapeDesc er_1{SHAPE_Y, -1.0, -1.0, -1.0, dx, dy, 1, 3};
+    ShapeDesc er_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 0, 0};
+    ShapeDesc er_3{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
    
     std::vector<std::vector<Complex>> er_layers = 
     {
-            layer::build(er_0, Nx, Ny, Lx, Ly),
-            layer::build(er_1, Nx, Ny, Lx, Ly),
-            layer::build(er_2, Nx, Ny, Lx, Ly),
-            layer::build(er_3, Nx, Ny, Lx, Ly)
+            layer::build(er_0, Nx, Ny, Lx, Ly, values),
+            layer::build(er_1, Nx, Ny, Lx, Ly, values),
+            layer::build(er_2, Nx, Ny, Lx, Ly, values),
+            layer::build(er_3, Nx, Ny, Lx, Ly, values)
             
             //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
             //legacy_layer::y_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
@@ -49,18 +51,18 @@ int main()
             //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0))
             
     };
-    ShapeDesc ur_0{SHAPE_TRIANGLE_SHIFTED, 0.7, 0.35, 0.35, dx, dy, Complex(1.0, 0.0), Complex(5.0, 0.0)};
-    ShapeDesc ur_1{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, Complex(1.0, 0.0), Complex(1.0, 0.0)};
-    ShapeDesc ur_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, Complex(2.0, 0.0), Complex(2.0, 0.0)};
-    ShapeDesc ur_3{SHAPE_SQUARE, std::min(Nx, Ny)/4.0, -1.0, -1.0, dx, dy, Complex(2.0, 0.0), Complex(8.0, 0.0)};
+    ShapeDesc ur_0{SHAPE_TRIANGLE_SHIFTED, 0.7, 0.35, 0.35, dx, dy, 0, 2};
+    ShapeDesc ur_1{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 0, 0};
+    ShapeDesc ur_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 1, 1};
+    ShapeDesc ur_3{SHAPE_SQUARE, std::min(Nx, Ny)/4.0, -1.0, -1.0, dx, dy, 1, 4};
 
 
     std::vector<std::vector<Complex>> ur_layers = 
     {
-            layer::build(ur_0, Nx, Ny, Lx, Ly),
-            layer::build(ur_1, Nx, Ny, Lx, Ly),
-            layer::build(ur_2, Nx, Ny, Lx, Ly),
-            layer::build(ur_3, Nx, Ny, Lx, Ly)
+            layer::build(ur_0, Nx, Ny, Lx, Ly, values),
+            layer::build(ur_1, Nx, Ny, Lx, Ly, values),
+            layer::build(ur_2, Nx, Ny, Lx, Ly, values),
+            layer::build(ur_3, Nx, Ny, Lx, Ly, values)
             
             //legacy_layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.35, 0.35, Complex(1.0, 0.0), Complex(5.0, 0.0)),
             //legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
