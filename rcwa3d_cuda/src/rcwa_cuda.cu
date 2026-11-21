@@ -130,6 +130,30 @@ void DestroyWorker(StreamWorker& w)
 }
 
 
+__global__ void BuildLayers(const ShapeDesc* er_desc, const ShapeDesc* ur_desc, const cuda_Complex_d* values,
+                            cuda_Complex_d* er, cuda_Complex_d* ur, int Nx, int Ny, double Lx, double Ly)
+{
+    /*
+    Function that build all the layers of a device directly into the GPU's memory.
+    */
+    
+    const int layer = blockIdx.y; // one grid row per layer: no 64-bit index needed
+    const int pix = blockIdx.x * blockDim.x + threadIdx.x; // pixel within the layer
+    if (pix >= Nx * Ny) 
+        return;
+    const int ix = pix % Nx;
+    const int iy = pix / Nx; // row-major, as now
+    const size_t offset = static_cast<size_t>(layer) * Nx * Ny + pix; // offset in er and ur
+    const ShapeDesc e = er_desc[layer];
+    const ShapeDesc u = ur_desc[layer];
+    er[offset] = values[InsideShape(e, ix, iy, Nx, Ny, Lx, Ly) ? e.value_in : e.value_out];
+    ur[offset] = values[InsideShape(u, ix, iy, Nx, Ny, Lx, Ly) ? u.value_in : u.value_out];
+    // launch: dim3 grid((Nx*Ny + 255) / 256, num_layers); // 1d flattening of thread blocks for each layer
+    // BuildLayers<<<grid, 256, 0, w.stream>>>(...) // use 256 threads per block
+}
+
+
+
 void convMat_cu(cufftHandle& plan, cuda_Complex_d* d_er_ptr, cuda_Complex_d* d_ur_ptr, cuda_Complex_d* d_erc_ptr, cuda_Complex_d* d_urc_ptr, int Nx, int Ny, int num_layers, int Nx_harmonics, int Ny_harmonics, int Q, int PQ, cudaStream_t stream)
 {
     /*
