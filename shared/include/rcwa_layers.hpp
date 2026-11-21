@@ -24,7 +24,7 @@ struct ShapeDesc
 {
     int type;
     double p0, p1, p2; // shape parameters, for example x_shift, y_shift
-    double dx; // compute once Lx / Nx -> non need to recompute for each thread call
+    double dx; // compute once Lx / Nx -> no need to recompute for each thread call
     double dy; // compute once Ly / Ny
     Complex value_inside; // to be edited: merge tabular data also for cpu based code
     Complex value_outside;
@@ -42,14 +42,14 @@ RCWA_HD inline bool InsideShape(const ShapeDesc& s, int idx, int idy, int Nx, in
         case SHAPE_UNIFORM:
             return true;
         case SHAPE_X:
-            return (std::abs((idx + 0.5) * Lx/Nx - Lx/2.0) <= 0.25);
+            return (std::abs((idx + 0.5) * s.dx - Lx/2.0) <= 0.25);
         case SHAPE_Y:
-            return (std::abs((idy + 0.5) * Ly/Ny - Ly/2.0) <= 0.25);
+            return (std::abs((idy + 0.5) * s.dy - Ly/2.0) <= 0.25);
         case SHAPE_TRIANGLE:
         {
             // s.p0 = w
-            double x = (idx + 0.5) * Lx/Nx; // physical x coordinate
-            double y = (idy + 0.5) * Ly/Ny;  // physical y coordinate
+            double x = (idx + 0.5) * s.dx; // physical x coordinate
+            double y = (idy + 0.5) * s.dy;  // physical y coordinate
             double y_rel = y - (Ly/2.0 - s.p0/2.0);
             return ((y_rel >= 0) && (y_rel <= s.p0) && (std::abs(x - (Lx/2.0)) <= (y_rel/2.0)));
         }
@@ -58,8 +58,8 @@ RCWA_HD inline bool InsideShape(const ShapeDesc& s, int idx, int idy, int Nx, in
             // s.p0 = w
             // s.p1 = x_shift
             // s.p2 = y_shift
-            double x = (idx + s.p1) * Lx/Nx; // physical x coordinate
-            double y = (idy + s.p2) * Ly/Ny;  // physical y coordinate
+            double x = (idx + s.p1) * s.dx; // physical x coordinate
+            double y = (idy + s.p2) * s.dy;  // physical y coordinate
             double y_rel = y - (Ly/2.0 - s.p0/2.0);
             return ((y_rel >= 0) && (y_rel <= s.p0) && (std::abs(x - (Lx/2.0)) <= (y_rel/2.0)));
         }

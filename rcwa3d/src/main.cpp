@@ -27,11 +27,14 @@ int main()
     Real Lx = 1.0; // unit cell dimension along X axis
     Real Ly = 1.0; // unit cell dimension along Y axis
 
+    Real dx = Lx/Nx;
+    Real dy = Ly/Ny;
+
     // Build the device layers
-    ShapeDesc er_0{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, 0.0, 0.0, Complex(2.0, 0.0), Complex(6.0, 0.0)};
-    ShapeDesc er_1{SHAPE_Y, -1.0, -1.0, -1.0, 0.0, 0.0, Complex(2.0, 0.0), Complex(6.0, 0.0)};
-    ShapeDesc er_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, 0.0, 0.0, Complex(1.0, 0.0), Complex(1.0, 0.0)};
-    ShapeDesc er_3{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, 0.0, 0.0, Complex(2.0, 0.0), Complex(6.0, 0.0)};
+    ShapeDesc er_0{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, Complex(2.0, 0.0), Complex(6.0, 0.0)};
+    ShapeDesc er_1{SHAPE_Y, -1.0, -1.0, -1.0, dx, dy, Complex(2.0, 0.0), Complex(6.0, 0.0)};
+    ShapeDesc er_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, Complex(1.0, 0.0), Complex(1.0, 0.0)};
+    ShapeDesc er_3{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, Complex(2.0, 0.0), Complex(6.0, 0.0)};
    
     std::vector<std::vector<Complex>> er_layers = 
     {
@@ -46,10 +49,10 @@ int main()
             //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0))
             
     };
-    ShapeDesc ur_0{SHAPE_TRIANGLE_SHIFTED, 0.7, 0.35, 0.35, 0.0, 0.0, Complex(1.0, 0.0), Complex(5.0, 0.0)};
-    ShapeDesc ur_1{SHAPE_UNIFORM, -1.0, -1.0, -1.0, 0.0, 0.0, Complex(1.0, 0.0), Complex(1.0, 0.0)};
-    ShapeDesc ur_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, 0.0, 0.0, Complex(2.0, 0.0), Complex(2.0, 0.0)};
-    ShapeDesc ur_3{SHAPE_SQUARE, std::min(Nx, Ny)/4.0, -1.0, -1.0, 0.0, 0.0, Complex(2.0, 0.0), Complex(8.0, 0.0)};
+    ShapeDesc ur_0{SHAPE_TRIANGLE_SHIFTED, 0.7, 0.35, 0.35, dx, dy, Complex(1.0, 0.0), Complex(5.0, 0.0)};
+    ShapeDesc ur_1{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, Complex(1.0, 0.0), Complex(1.0, 0.0)};
+    ShapeDesc ur_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, Complex(2.0, 0.0), Complex(2.0, 0.0)};
+    ShapeDesc ur_3{SHAPE_SQUARE, std::min(Nx, Ny)/4.0, -1.0, -1.0, dx, dy, Complex(2.0, 0.0), Complex(8.0, 0.0)};
 
 
     std::vector<std::vector<Complex>> ur_layers = 
@@ -70,7 +73,6 @@ int main()
 
 
     //std::vector<Real> thickness{1.5, 0.3, 2.4, 2.6, 1.1, 0.25};
-    //std::vector<Real> thickness{1.5, 0.3, 2.4, 3.0};
     std::vector<Real> thickness{1.5, 2.0, 1.0, 2.0};
 
 
