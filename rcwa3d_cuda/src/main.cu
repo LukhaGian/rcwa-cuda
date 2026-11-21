@@ -21,30 +21,53 @@ int main()
     Real Lx = 1.0; // unit cell dimension along x axis
     Real Ly = 1.0; // unit cell dimension along y axis
 
+    Real dx = Lx/Nx;
+    Real dy = Ly/Ny;
+
+    std::vector<Complex> values{Complex(1.0, 0.0), Complex(2.0, 0.0), Complex(5.0, 0.0), Complex(6.0, 0.0), Complex(8.0, 0.0)};
+
     // Build the device layers
+    ShapeDesc er_0{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
+    ShapeDesc er_1{SHAPE_X, -1.0, -1.0, -1.0, dx, dy, 1, 3};
+    ShapeDesc er_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 0, 0};
+    ShapeDesc er_3{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
+   
     std::vector<std::vector<Complex>> er_layers = 
     {
-            legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
-            legacy_layer::x_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
-            legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0))
-
-
+            layer::build(er_0, Nx, Ny, Lx, Ly, values),
+            layer::build(er_1, Nx, Ny, Lx, Ly, values),
+            layer::build(er_2, Nx, Ny, Lx, Ly, values),
+            layer::build(er_3, Nx, Ny, Lx, Ly, values)
+            
+            //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
+            //legacy_layer::x_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
+            //legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
+            //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0))
+            
     };
+    ShapeDesc ur_0{SHAPE_TRIANGLE_SHIFTED, 0.7, 0.35, 0.35, dx, dy, 0, 2};
+    ShapeDesc ur_1{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 0, 0};
+    ShapeDesc ur_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 1, 1};
+    ShapeDesc ur_3{SHAPE_SQUARE, std::min(Nx, Ny)/4.0, -1.0, -1.0, dx, dy, 1, 4};
+
+
     std::vector<std::vector<Complex>> ur_layers = 
     {
+            layer::build(ur_0, Nx, Ny, Lx, Ly, values),
+            layer::build(ur_1, Nx, Ny, Lx, Ly, values),
+            layer::build(ur_2, Nx, Ny, Lx, Ly, values),
+            layer::build(ur_3, Nx, Ny, Lx, Ly, values)
+            
             legacy_layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.35, 0.35, Complex(1.0, 0.0), Complex(5.0, 0.0)),
             legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            legacy_layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.2, 0.2, Complex(2.0, 0.0), Complex(8.0, 0.0))
-
-
+            legacy_layer::uniform(Nx, Ny, Complex(2.0, 0.0)),
+            legacy_layer::square_pattern(Nx, Ny, Complex(2.0, 0.0), Complex(8.0, 0.0))
+            
     };
     std::vector<Complex> er = layer::stack(er_layers);
     std::vector<Complex> ur = layer::stack(ur_layers);
 
-    //std::vector<Real> thickness{1.5, 0.3, 2.4, 2.6, 1.1, 0.25};
-    std::vector<Real> thickness{1.5, 0.3, 2.4, 3.0};
+    std::vector<Real> thickness{1.5, 2.0, 1.0, 2.0};
 
     // Build the device --> for now materials are not wavelength dependent
     Device device(Nx, Ny, thickness.size(), Lx, Ly, er, ur, thickness, Nx_harmonics, Ny_harmonics);
