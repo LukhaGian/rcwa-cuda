@@ -22,20 +22,20 @@ enum ShapeType : int {SHAPE_UNIFORM, SHAPE_X, SHAPE_Y,
 // Generalized struct that describes the shape
 struct ShapeDesc
 {
-    int type;
-    double p0, p1, p2; // shape parameters, for example x_shift, y_shift
-    double dx; // compute once Lx / Nx -> no need to recompute for each thread call
-    double dy; // compute once Ly / Ny
-    Complex value_inside; // to be edited: merge tabular data also for cpu based code
-    Complex value_outside;
+    int type{SHAPE_UNIFORM};
+    Real p0{0.0}; // shape parameters, for example x_shift, y_shift
+    Real p1{0.0};
+    Real p2{0.0}; 
+    Real dx{0.0}; // compute once Lx / Nx -> no need to recompute for each thread call
+    Real dy{0.0}; // compute once Ly / Ny
     int value_in{0}; // index into the per-wavelength value table
     int value_out{0};
 };
 
-RCWA_HD inline bool InsideShape(const ShapeDesc& s, int idx, int idy, int Nx, int Ny, double Lx, double Ly)
+RCWA_HD inline bool InsideShape(const ShapeDesc& s, int idx, int idy, int Nx, int Ny, Real Lx, Real Ly)
 {
     /*
-    Keep idx and idy as int, for simplicity --> can be moved to double if easier, loging a little bit of clarity to get some potential benefit in cuda
+    Keep idx and idy as int, for simplicity
     */
     switch(s.type)
     {
@@ -48,9 +48,9 @@ RCWA_HD inline bool InsideShape(const ShapeDesc& s, int idx, int idy, int Nx, in
         case SHAPE_TRIANGLE:
         {
             // s.p0 = w
-            double x = (idx + 0.5) * s.dx; // physical x coordinate
-            double y = (idy + 0.5) * s.dy;  // physical y coordinate
-            double y_rel = y - (Ly/2.0 - s.p0/2.0);
+            Real x = (idx + 0.5) * s.dx; // physical x coordinate
+            Real y = (idy + 0.5) * s.dy;  // physical y coordinate
+            Real y_rel = y - (Ly/2.0 - s.p0/2.0);
             return ((y_rel >= 0) && (y_rel <= s.p0) && (std::abs(x - (Lx/2.0)) <= (y_rel/2.0)));
         }
         case SHAPE_TRIANGLE_SHIFTED:
@@ -58,9 +58,9 @@ RCWA_HD inline bool InsideShape(const ShapeDesc& s, int idx, int idy, int Nx, in
             // s.p0 = w
             // s.p1 = x_shift
             // s.p2 = y_shift
-            double x = (idx + s.p1) * s.dx; // physical x coordinate
-            double y = (idy + s.p2) * s.dy;  // physical y coordinate
-            double y_rel = y - (Ly/2.0 - s.p0/2.0);
+            Real x = (idx + s.p1) * s.dx; // physical x coordinate
+            Real y = (idy + s.p2) * s.dy;  // physical y coordinate
+            Real y_rel = y - (Ly/2.0 - s.p0/2.0);
             return ((y_rel >= 0) && (y_rel <= s.p0) && (std::abs(x - (Lx/2.0)) <= (y_rel/2.0)));
         }
             case SHAPE_SQUARE:
@@ -78,7 +78,7 @@ RCWA_HD inline bool InsideShape(const ShapeDesc& s, int idx, int idy, int Nx, in
 namespace layer
 {
 
-    inline std::vector<Complex> build(const ShapeDesc& s, int Nx, int Ny, double Lx, double Ly)
+    inline std::vector<Complex> build(const ShapeDesc& s, int Nx, int Ny, Real Lx, Real Ly, const std::vector<Complex>& values)
     {
         // Function that builds a layer based on s.
         std::vector<Complex> out(Nx * Ny, Complex(-1.0, -1.0));
@@ -87,7 +87,7 @@ namespace layer
             for (int ix = 0; ix < Nx; ++ix)
                 {
                     bool inside = InsideShape(s, ix, iy, Nx, Ny, Lx, Ly);
-                    out[iy * Nx + ix] = inside ? s.value_inside : s.value_outside;
+                    out[iy * Nx + ix] = inside ? values[s.value_in] : values[s.value_out];
                 }
         }
         return out;
@@ -121,14 +121,14 @@ namespace legacy_layer
 
     }
 
-    inline std::vector<Complex> x_pattern(int Nx, int Ny, double Lx, double Ly, Complex inside_value, Complex outside_value)
+    inline std::vector<Complex> x_pattern(int Nx, int Ny, Real Lx, Real Ly, Complex inside_value, Complex outside_value)
     {
         std::vector<Complex> out(Nx * Ny, Complex(0.0, 0.0));
         for (int iy = 0; iy < Ny; ++iy)
         {
             for (int ix = 0; ix < Nx; ++ix)
                 {
-                    double x = (ix + 0.5) * Lx / Nx;  // pyhsical [0, Lx]
+                    Real x = (ix + 0.5) * Lx / Nx;  // pyhsical [0, Lx]
                     bool inside_square = (std::abs(x - Lx/2.0) <= 0.25);
                     out[iy * Nx + ix] = inside_square ? inside_value : outside_value;
                 }
@@ -137,15 +137,15 @@ namespace legacy_layer
 
     }
 
-    inline std::vector<Complex> y_pattern(int Nx, int Ny, double Lx, double Ly, Complex inside_value, Complex outside_value)
+    inline std::vector<Complex> y_pattern(int Nx, int Ny, Real Lx, Real Ly, Complex inside_value, Complex outside_value)
     {
         std::vector<Complex> out(Nx * Ny, Complex(0.0, 0.0));
         for (int iy = 0; iy < Ny; ++iy)
         {
-        double y = (iy + 0.5) * Ly / Ny;  // pyhsical [0, Ly]
+        Real y = (iy + 0.5) * Ly / Ny;  // pyhsical [0, Ly]
         for (int ix = 0; ix < Nx; ++ix)
             {
-                double x = (ix + 0.5) * Lx / Nx;  // pyhsical [0, Lx]
+                Real x = (ix + 0.5) * Lx / Nx;  // pyhsical [0, Lx]
                 bool inside_square = (std::abs(y - Ly/2.0) <= 0.25);
                 out[iy * Nx + ix] = inside_square ? inside_value : outside_value;
             }
@@ -154,22 +154,22 @@ namespace legacy_layer
 
     }
 
-    inline std::vector<Complex> triangle_pattern(int Nx, int Ny, double Lx, double Ly, Complex inside_value, Complex outside_value)
+    inline std::vector<Complex> triangle_pattern(int Nx, int Ny, Real Lx, Real Ly, Complex inside_value, Complex outside_value)
     {
         std::vector<Complex> out(Nx * Ny, Complex(0.0, 0.0));
         for (int iy = 0; iy < Ny; ++iy)
         {
-            double y = (iy + 0.5) * Ly / Ny;  // physical y coordinate
+            Real y = (iy + 0.5) * Ly / Ny;  // physical y coordinate
             for (int ix = 0; ix < Nx; ++ix)
                 {
-                    double x = (ix + 0.5) * Lx / Nx;  // physical x coordinate
+                    Real x = (ix + 0.5) * Lx / Nx;  // physical x coordinate
                     // Triangle centred at (Lx/2, Ly/2) with base w = 0.7*Ly
-                    double w = 0.70 * Ly;
-                    double xc = Lx / 2.0;
-                    double yc = Ly / 2.0;
+                    Real w = 0.70 * Ly;
+                    Real xc = Lx / 2.0;
+                    Real yc = Ly / 2.0;
                     // Triangle vertices (centred)
-                    double y_rel = y - (yc - w/2.0);  // relative to triangle base
-                    double half_base = (w/2.0) * (y_rel/w);  // apex at top, base at bottom                
+                    Real y_rel = y - (yc - w/2.0);  // relative to triangle base
+                    Real half_base = (w/2.0) * (y_rel/w);  // apex at top, base at bottom                
                     bool inside_triangle = (y_rel >= 0) && (y_rel <= w) && (std::abs(x - xc) <= half_base);
                     out[iy * Nx + ix] = inside_triangle ? inside_value : outside_value;
                 }
@@ -178,22 +178,22 @@ namespace legacy_layer
 
     }
 
-    inline std::vector<Complex> triangle_pattern_shifted(int Nx, int Ny, double Lx, double Ly, double x_shift, double y_shift, Complex inside_value, Complex outside_value)
+    inline std::vector<Complex> triangle_pattern_shifted(int Nx, int Ny, Real Lx, Real Ly, Real x_shift, Real y_shift, Complex inside_value, Complex outside_value)
     {
         std::vector<Complex> out(Nx * Ny, Complex(0.0, 0.0));
         for (int iy = 0; iy < Ny; ++iy)
         {
-            double y = (iy + y_shift) * Ly / Ny;  // physical y coordinate
+            Real y = (iy + y_shift) * Ly / Ny;  // physical y coordinate
             for (int ix = 0; ix < Nx; ++ix)
                 {
-                    double x = (ix + x_shift) * Lx / Nx;  // physical x coordinate
+                    Real x = (ix + x_shift) * Lx / Nx;  // physical x coordinate
                     // Triangle centred at (Lx/2, Ly/2) with base w = 0.7*Ly
-                    double w = 0.70 * Ly;
-                    double xc = Lx / 2.0;
-                    double yc = Ly / 2.0;
+                    Real w = 0.70 * Ly;
+                    Real xc = Lx / 2.0;
+                    Real yc = Ly / 2.0;
                     // Triangle vertices (centred)
-                    double y_rel = y - (yc - w/2.0);  // relative to triangle base
-                    double half_base = (w/2.0) * (y_rel/w);  // apex at top, base at bottom                
+                    Real y_rel = y - (yc - w/2.0);  // relative to triangle base
+                    Real half_base = (w/2.0) * (y_rel/w);  // apex at top, base at bottom                
                     bool inside_triangle = (y_rel >= 0) && (y_rel <= w) && (std::abs(x - xc) <= half_base);
                     out[iy * Nx + ix] = inside_triangle ? inside_value : outside_value;
                 }
