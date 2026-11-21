@@ -171,17 +171,8 @@ namespace layer
         std::vector<Complex> out(Nx * Ny, Complex(-1.0, -1.0));
         for (int iy = 0; iy < Ny; ++iy)
         {
-            //double y = (iy + 0.5) * Ly / Ny;  // physical y coordinate !!!!
             for (int ix = 0; ix < Nx; ++ix)
                 {
-                    //double x = (ix + 0.5) * Lx / Nx;  // physical x coordinate !!!!!
-                    // Triangle centred at (Lx/2, Ly/2) with base w = 0.7*Ly
-                    //double w = s.p0; //w = 0.70 * Ly;
-                    //double xc = s.p1; //xc = Lx / 2.0;
-                    //double yc = Ly / 2.0; //yc = Ly / 2.0;
-                    // Triangle vertices (centred)
-                    //double y_rel = y - (yc - w/2.0);  // relative to triangle base !!!!!!!!
-                    //double half_base = (y_rel/2.0);  // apex at top, base at bottom !!!!!!            
                     bool inside_triangle = InsideShape(s, ix, iy, Nx, Ny, Lx, Ly);
                     out[iy * Nx + ix] = inside_triangle ? s.value_inside : s.value_outside;
                 }
@@ -223,17 +214,8 @@ namespace layer
         double y_shift = s.p2;
         for (int iy = 0; iy < Ny; ++iy)
         {
-            double y = (iy + y_shift) * Ly / Ny;  // physical y coordinate
             for (int ix = 0; ix < Nx; ++ix)
-                {
-                    double x = (ix + x_shift) * Lx / Nx;  // physical x coordinate
-                    // Triangle centred at (Lx/2, Ly/2) with base w = 0.7*Ly
-                    double w = s.p0;          //w = 0.70 * Ly;
-                    //double xc = Lx / 2.0;
-                    double yc = Ly / 2.0;
-                    // Triangle vertices (centred)
-                    double y_rel = y - (yc - w/2.0);  // relative to triangle base
-                    //double half_base = (y_rel/2.0);  // apex at top, base at bottom                
+                {                
                     bool inside_triangle = InsideShape(s, ix, iy, Nx, Ny, Lx, Ly);
                     out[iy * Nx + ix] = inside_triangle ? s.value_inside : s.value_outside;
                 }
@@ -272,19 +254,6 @@ namespace layer
     
         // Allocate the single 1D vector representing the entire Ny x Nx grid
         std::vector<Complex> out(Nx * Ny, Complex(-1.0, -1.0));
-
-        // Define center and half-width of the square
-        //int cy = Ny / 2;
-        //int cx = Nx / 2;
-        //int half_size = std::min(Nx, Ny) / 4; // Controls the size of the square
-
-        // Calculate boundary indices
-        //int y_start = cy - half_size; // Ny/2 - s.p0 
-        //int y_end   = cy + half_size;
-        //int x_start = cx - half_size;
-        //int x_end   = cx + half_size;
-
-        // Fill the square values within boundaries
         for (int iy = 0; iy < Ny; ++iy) 
         {
             for (int ix = 0; ix < Nx; ++ix) 
