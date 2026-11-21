@@ -26,8 +26,10 @@ struct ShapeDesc
     double p0, p1, p2; // shape parameters, for example x_shift, y_shift
     double dx; // compute once Lx / Nx -> non need to recompute for each thread call
     double dy; // compute once Ly / Ny
-    Complex value_inside;
+    Complex value_inside; // to be edited: merge tabular data also for cpu based code
     Complex value_outside;
+    int value_in{0}; // index into the per-wavelength value table
+    int value_out{0};
 };
 
 RCWA_HD inline bool InsideShape(const ShapeDesc& s, int idx, int idy, int Nx, int Ny, double Lx, double Ly)
@@ -91,14 +93,6 @@ namespace layer
 
     }
 
-    inline std::vector<Complex> uniform_old(int Nx, int Ny, Complex value)
-    {
-        // Function that creates a uniform 2D array of size Nx x Ny with a given complex value
-        return std::vector<Complex>(Nx * Ny, value);
-
-    }
-    
-
 
     inline std::vector<Complex> x_pattern(const ShapeDesc& s, int Nx, int Ny, double Lx, double Ly)
     {
@@ -109,23 +103,6 @@ namespace layer
                 {
                     bool inside_square = InsideShape(s, ix, iy, Nx, Ny, Lx, Ly);
                     out[iy * Nx + ix] = inside_square ? s.value_inside : s.value_outside;
-                }
-        }
-        return out;
-
-    }
-
-
-    inline std::vector<Complex> x_pattern_old(int Nx, int Ny, double Lx, double Ly, Complex inside_value, Complex outside_value)
-    {
-        std::vector<Complex> out(Nx * Ny, Complex(0.0, 0.0));
-        for (int iy = 0; iy < Ny; ++iy)
-        {
-            for (int ix = 0; ix < Nx; ++ix)
-                {
-                    double x = (ix + 0.5) * Lx / Nx;  // pyhsical [0, Lx]
-                    bool inside_square = (std::abs(x - Lx/2.0) <= 0.25);
-                    out[iy * Nx + ix] = inside_square ? inside_value : outside_value;
                 }
         }
         return out;
@@ -148,23 +125,6 @@ namespace layer
 
     }
 
-    inline std::vector<Complex> y_pattern_old(int Nx, int Ny, double Lx, double Ly, Complex inside_value, Complex outside_value)
-    {
-        std::vector<Complex> out(Nx * Ny, Complex(0.0, 0.0));
-        for (int iy = 0; iy < Ny; ++iy)
-        {
-        double y = (iy + 0.5) * Ly / Ny;  // pyhsical [0, Ly]
-        for (int ix = 0; ix < Nx; ++ix)
-            {
-                double x = (ix + 0.5) * Lx / Nx;  // pyhsical [0, Lx]
-                bool inside_square = (std::abs(y - Ly/2.0) <= 0.25);
-                out[iy * Nx + ix] = inside_square ? inside_value : outside_value;
-            }
-        }
-        return out;
-
-    }
-
 
     inline std::vector<Complex> triangle_pattern(const ShapeDesc& s, int Nx, int Ny, double Lx, double Ly)
     {
@@ -175,31 +135,6 @@ namespace layer
                 {
                     bool inside_triangle = InsideShape(s, ix, iy, Nx, Ny, Lx, Ly);
                     out[iy * Nx + ix] = inside_triangle ? s.value_inside : s.value_outside;
-                }
-        }
-        return out;
-
-    }
-
-    
-    inline std::vector<Complex> triangle_pattern_old(int Nx, int Ny, double Lx, double Ly, Complex inside_value, Complex outside_value)
-    {
-        std::vector<Complex> out(Nx * Ny, Complex(0.0, 0.0));
-        for (int iy = 0; iy < Ny; ++iy)
-        {
-            double y = (iy + 0.5) * Ly / Ny;  // physical y coordinate
-            for (int ix = 0; ix < Nx; ++ix)
-                {
-                    double x = (ix + 0.5) * Lx / Nx;  // physical x coordinate
-                    // Triangle centred at (Lx/2, Ly/2) with base w = 0.7*Ly
-                    double w = 0.70 * Ly;
-                    double xc = Lx / 2.0;
-                    double yc = Ly / 2.0;
-                    // Triangle vertices (centred)
-                    double y_rel = y - (yc - w/2.0);  // relative to triangle base
-                    double half_base = (w/2.0) * (y_rel/w);  // apex at top, base at bottom                
-                    bool inside_triangle = (y_rel >= 0) && (y_rel <= w) && (std::abs(x - xc) <= half_base);
-                    out[iy * Nx + ix] = inside_triangle ? inside_value : outside_value;
                 }
         }
         return out;
@@ -224,7 +159,110 @@ namespace layer
 
     }
 
-    inline std::vector<Complex> triangle_pattern_shifted_old(int Nx, int Ny, double Lx, double Ly, double x_shift, double y_shift, Complex inside_value, Complex outside_value)
+
+    inline std::vector<Complex> square_pattern(const ShapeDesc& s, int Nx, int Ny, double Lx, double Ly) 
+    {
+    
+        // Allocate the single 1D vector representing the entire Ny x Nx grid
+        std::vector<Complex> out(Nx * Ny, Complex(-1.0, -1.0));
+        for (int iy = 0; iy < Ny; ++iy) 
+        {
+            for (int ix = 0; ix < Nx; ++ix) 
+            {
+                bool inside_square = InsideShape(s, ix, iy, Nx, Ny, Lx, Ly);
+                out[iy * Nx + ix] = inside_square ? s.value_inside : s.value_outside;
+            }
+        }
+        return out;
+
+    }
+
+
+    inline std::vector<Complex> stack(const std::vector<std::vector<Complex>>& layers)
+    {
+        size_t total = 0;
+        for (const auto& layer : layers)
+            total += layer.size();
+
+        std::vector<Complex> out;
+        out.reserve(total); // reserve the memory for the total size of all layers
+
+        for (const auto& layer : layers)
+            out.insert(out.end(), layer.begin(), layer.end());
+
+        return out;
+
+    }
+}
+
+namespace legacy_layer
+{
+
+    inline std::vector<Complex> uniform(int Nx, int Ny, Complex value)
+    {
+        // Function that creates a uniform 2D array of size Nx x Ny with a given complex value
+        return std::vector<Complex>(Nx * Ny, value);
+
+    }
+
+    inline std::vector<Complex> x_pattern(int Nx, int Ny, double Lx, double Ly, Complex inside_value, Complex outside_value)
+    {
+        std::vector<Complex> out(Nx * Ny, Complex(0.0, 0.0));
+        for (int iy = 0; iy < Ny; ++iy)
+        {
+            for (int ix = 0; ix < Nx; ++ix)
+                {
+                    double x = (ix + 0.5) * Lx / Nx;  // pyhsical [0, Lx]
+                    bool inside_square = (std::abs(x - Lx/2.0) <= 0.25);
+                    out[iy * Nx + ix] = inside_square ? inside_value : outside_value;
+                }
+        }
+        return out;
+
+    }
+
+    inline std::vector<Complex> y_pattern(int Nx, int Ny, double Lx, double Ly, Complex inside_value, Complex outside_value)
+    {
+        std::vector<Complex> out(Nx * Ny, Complex(0.0, 0.0));
+        for (int iy = 0; iy < Ny; ++iy)
+        {
+        double y = (iy + 0.5) * Ly / Ny;  // pyhsical [0, Ly]
+        for (int ix = 0; ix < Nx; ++ix)
+            {
+                double x = (ix + 0.5) * Lx / Nx;  // pyhsical [0, Lx]
+                bool inside_square = (std::abs(y - Ly/2.0) <= 0.25);
+                out[iy * Nx + ix] = inside_square ? inside_value : outside_value;
+            }
+        }
+        return out;
+
+    }
+
+    inline std::vector<Complex> triangle_pattern(int Nx, int Ny, double Lx, double Ly, Complex inside_value, Complex outside_value)
+    {
+        std::vector<Complex> out(Nx * Ny, Complex(0.0, 0.0));
+        for (int iy = 0; iy < Ny; ++iy)
+        {
+            double y = (iy + 0.5) * Ly / Ny;  // physical y coordinate
+            for (int ix = 0; ix < Nx; ++ix)
+                {
+                    double x = (ix + 0.5) * Lx / Nx;  // physical x coordinate
+                    // Triangle centred at (Lx/2, Ly/2) with base w = 0.7*Ly
+                    double w = 0.70 * Ly;
+                    double xc = Lx / 2.0;
+                    double yc = Ly / 2.0;
+                    // Triangle vertices (centred)
+                    double y_rel = y - (yc - w/2.0);  // relative to triangle base
+                    double half_base = (w/2.0) * (y_rel/w);  // apex at top, base at bottom                
+                    bool inside_triangle = (y_rel >= 0) && (y_rel <= w) && (std::abs(x - xc) <= half_base);
+                    out[iy * Nx + ix] = inside_triangle ? inside_value : outside_value;
+                }
+        }
+        return out;
+
+    }
+
+    inline std::vector<Complex> triangle_pattern_shifted(int Nx, int Ny, double Lx, double Ly, double x_shift, double y_shift, Complex inside_value, Complex outside_value)
     {
         std::vector<Complex> out(Nx * Ny, Complex(0.0, 0.0));
         for (int iy = 0; iy < Ny; ++iy)
@@ -248,25 +286,7 @@ namespace layer
 
     }
 
-
-    inline std::vector<Complex> square_pattern(const ShapeDesc& s, int Nx, int Ny, double Lx, double Ly) 
-    {
-    
-        // Allocate the single 1D vector representing the entire Ny x Nx grid
-        std::vector<Complex> out(Nx * Ny, Complex(-1.0, -1.0));
-        for (int iy = 0; iy < Ny; ++iy) 
-        {
-            for (int ix = 0; ix < Nx; ++ix) 
-            {
-                bool inside_square = InsideShape(s, ix, iy, Nx, Ny, Lx, Ly);
-                out[iy * Nx + ix] = inside_square ? s.value_inside : s.value_outside;
-            }
-        }
-        return out;
-
-    }
-
-        inline std::vector<Complex> square_pattern_old(int Nx, int Ny, Complex inside_value, Complex outside_value) 
+    inline std::vector<Complex> square_pattern(int Nx, int Ny, Complex inside_value, Complex outside_value) 
     {
     
         // Allocate the single 1D vector representing the entire Ny x Nx grid
@@ -297,19 +317,4 @@ namespace layer
     }
 
 
-    inline std::vector<Complex> stack(const std::vector<std::vector<Complex>>& layers)
-    {
-        size_t total = 0;
-        for (const auto& layer : layers)
-            total += layer.size();
-
-        std::vector<Complex> out;
-        out.reserve(total); // reserve the memory for the total size of all layers
-
-        for (const auto& layer : layers)
-            out.insert(out.end(), layer.begin(), layer.end());
-
-        return out;
-
-    }
 }

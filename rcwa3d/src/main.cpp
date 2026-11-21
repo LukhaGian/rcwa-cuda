@@ -40,10 +40,10 @@ int main()
             layer::uniform(er_2, Nx, Ny, Lx, Ly),
             layer::triangle_pattern(er_3, Nx, Ny, Lx, Ly)
             
-            //layer::triangle_pattern_old(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
-            //layer::y_pattern_old(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
-            //layer::uniform_old(Nx, Ny, Complex(1.0, 0.0)),
-            //layer::triangle_pattern_old(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0))
+            //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
+            //legacy_layer::y_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
+            //legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
+            //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0))
             
     };
     ShapeDesc ur_0{SHAPE_TRIANGLE_SHIFTED, 0.7, 0.35, 0.35, 0.0, 0.0, Complex(1.0, 0.0), Complex(5.0, 0.0)};
@@ -59,10 +59,10 @@ int main()
             layer::uniform(ur_2, Nx, Ny, Lx, Ly),
             layer::square_pattern(ur_3, Nx, Ny, Lx, Ly)
             
-            //layer::triangle_pattern_shifted_old(Nx, Ny, Lx, Ly, 0.35, 0.35, Complex(1.0, 0.0), Complex(5.0, 0.0)),
-            //layer::uniform_old(Nx, Ny, Complex(1.0, 0.0)),
-            //layer::uniform_old(Nx, Ny, Complex(2.0, 0.0)),
-            //layer::square_pattern_old(Nx, Ny, Complex(2.0, 0.0), Complex(8.0, 0.0))
+            //legacy_layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.35, 0.35, Complex(1.0, 0.0), Complex(5.0, 0.0)),
+            //legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
+            //legacy_layer::uniform(Nx, Ny, Complex(2.0, 0.0)),
+            //legacy_layer::square_pattern(Nx, Ny, Complex(2.0, 0.0), Complex(8.0, 0.0))
             
     };
     std::vector<Complex> er = layer::stack(er_layers);
