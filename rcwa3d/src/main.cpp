@@ -34,7 +34,7 @@ int main()
 
     // Build the device layers
     ShapeDesc er_0{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
-    ShapeDesc er_1{SHAPE_Y, -1.0, -1.0, -1.0, dx, dy, 1, 3};
+    ShapeDesc er_1{SHAPE_X, -1.0, -1.0, -1.0, dx, dy, 1, 3};
     ShapeDesc er_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 0, 0};
     ShapeDesc er_3{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
    
@@ -46,7 +46,7 @@ int main()
             layer::build(er_3, Nx, Ny, Lx, Ly, values)
             
             //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
-            //legacy_layer::y_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
+            //legacy_layer::x_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
             //legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
             //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0))
             
@@ -73,8 +73,6 @@ int main()
     std::vector<Complex> er = layer::stack(er_layers);
     std::vector<Complex> ur = layer::stack(ur_layers);
 
-
-    //std::vector<Real> thickness{1.5, 0.3, 2.4, 2.6, 1.1, 0.25};
     std::vector<Real> thickness{1.5, 2.0, 1.0, 2.0};
 
 
