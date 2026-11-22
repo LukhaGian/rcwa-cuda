@@ -95,13 +95,13 @@ int main()
             layer::build(ur_2, Nx, Ny, Lx, Ly, table.values),
             layer::build(ur_3, Nx, Ny, Lx, Ly, table.values) 
     };
-    
+
     std::vector<Complex> er = layer::stack(er_layers);
     std::vector<Complex> ur = layer::stack(ur_layers);
 
     std::vector<Real> thickness{1.5, 2.0, 1.0, 2.0};
 
-    // Build the device --> for now materials are not wavelength dependent
+    // Build the device
     Device device(Nx, Ny, thickness.size(), Lx, Ly, er_desc, ur_desc, thickness, Nx_harmonics, Ny_harmonics);
 
 
@@ -149,30 +149,6 @@ int main()
     for (auto& t : threads)
         t.join(); // it locks the calling thread until the worker thread finishes execution
     const double wall_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - wall_start).count();
-
-
-
-    // Single worker
-    /*
-    std::atomic<int> next_wavelength{0};
-    StreamWorker worker;
-    bool debug = true;
-    InitWorker(worker, 0, device, params, debug);
-    
-    // RunWorker in std::thread. 
-    // Here we use std::ref since it allows us to pass by reference to std::thread (by default it copies the data even if the thread function uses references). 
-    // Similarly, std::cref passes its argument by const reference.
-    // When you pass arguments to a std::thread constructor, it internally copies or moves 
-    // all arguments into the new thread's memory space, even if your target function takes a reference.
-    const auto wall_start = std::chrono::steady_clock::now();
-    std::thread t(RunWorker, std::ref(worker), std::cref(device), std::cref(source), std::cref(params), std::ref(next_wavelength));
-    t.join(); // it locks the calling thread until the worker thread finishes execution
-    const double wall_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - wall_start).count();
-    // Convolution results
-    const auto* erc = reinterpret_cast<const Complex*>(worker.h_erc); // raw pointer
-    const auto* urc = reinterpret_cast<const Complex*>(worker.h_urc);
-    */
-
 
 
     //////////////////////////////////////////////////
