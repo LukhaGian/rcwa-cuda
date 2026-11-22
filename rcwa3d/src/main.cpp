@@ -17,6 +17,28 @@ int main()
         std::cout << "Eigen is NOT using LAPACKE.\n";
     #endif
 
+    // Wavelength sweep parameters
+    int num_wavelengths = 8;
+
+    std::vector<Real> lambda0_v(num_wavelengths, -1.0);
+    Real lambda_start = 2.0;
+    Real lambda_end = 3.0;
+    // If num_wavelength is 1, just set it to the lambda_start value to avoid division by zero
+    if (num_wavelengths == 1)
+        lambda0_v[0] = lambda_start;
+    else 
+    {
+        Real step = (lambda_end - lambda_start) / (num_wavelengths - 1);
+        for (int i = 0; i < num_wavelengths; ++i) 
+            lambda0_v[i] = lambda_start + i * step;
+    }
+
+    // Remaining source parameters
+    Real theta = M_PI / 6.0;
+    Real phi = M_PI / 12.0;
+    Real pte = 0.0; // TE pol
+    Real ptm = 1.0; // TM pol
+
     int Nx = 2048; // make sure it's always even
     int Ny = 2048;
 
@@ -31,6 +53,14 @@ int main()
     Real dy = Ly/Ny;
 
     std::vector<Complex> values{Complex(1.0, 0.0), Complex(2.0, 0.0), Complex(5.0, 0.0), Complex(6.0, 0.0), Complex(8.0, 0.0)};
+    // Pre-allocate total required capacity to avoid reallocations
+    std::vector<Complex> table{};
+    table.reserve(table.size() + values.size() * num_wavelengths);
+    // Append values to the end of table num_wavelengths times
+    for (int i = 0; i < num_wavelengths; ++i) 
+        table.insert(table.end(), values.begin(), values.end()); // num_wavelengths x num_values
+    
+    ValueTable tab{static_cast<int>(values.size()), num_wavelengths, table};
 
     // Build the device layers
     ShapeDesc er_0{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
@@ -40,10 +70,10 @@ int main()
    
     std::vector<std::vector<Complex>> er_layers = 
     {
-            layer::build(er_0, Nx, Ny, Lx, Ly, values),
-            layer::build(er_1, Nx, Ny, Lx, Ly, values),
-            layer::build(er_2, Nx, Ny, Lx, Ly, values),
-            layer::build(er_3, Nx, Ny, Lx, Ly, values)
+            layer::build(er_0, Nx, Ny, Lx, Ly, tab.values),
+            layer::build(er_1, Nx, Ny, Lx, Ly, tab.values),
+            layer::build(er_2, Nx, Ny, Lx, Ly, tab.values),
+            layer::build(er_3, Nx, Ny, Lx, Ly, tab.values)
             
             //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
             //legacy_layer::x_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
@@ -59,10 +89,10 @@ int main()
 
     std::vector<std::vector<Complex>> ur_layers = 
     {
-            layer::build(ur_0, Nx, Ny, Lx, Ly, values),
-            layer::build(ur_1, Nx, Ny, Lx, Ly, values),
-            layer::build(ur_2, Nx, Ny, Lx, Ly, values),
-            layer::build(ur_3, Nx, Ny, Lx, Ly, values)
+            layer::build(ur_0, Nx, Ny, Lx, Ly, tab.values),
+            layer::build(ur_1, Nx, Ny, Lx, Ly, tab.values),
+            layer::build(ur_2, Nx, Ny, Lx, Ly, tab.values),
+            layer::build(ur_3, Nx, Ny, Lx, Ly, tab.values)
             
             //legacy_layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.35, 0.35, Complex(1.0, 0.0), Complex(5.0, 0.0)),
             //legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
@@ -101,27 +131,6 @@ int main()
         }
     }
 
-    // Wavelength sweep parameters
-    int num_wavelengths = 8;
-
-    std::vector<Real> lambda0_v(num_wavelengths, -1.0);
-    Real lambda_start = 2.0;
-    Real lambda_end = 3.0;
-    // If num_wavelength is 1, just set it to the lambda_start value to avoid division by zero
-    if (num_wavelengths == 1)
-        lambda0_v[0] = lambda_start;
-    else 
-    {
-        Real step = (lambda_end - lambda_start) / (num_wavelengths - 1);
-        for (int i = 0; i < num_wavelengths; ++i) 
-            lambda0_v[i] = lambda_start + i * step;
-    }
-
-    // Remaining source parameters
-    Real theta = M_PI / 6.0;
-    Real phi = M_PI / 12.0;
-    Real pte = 0.0; // TE pol
-    Real ptm = 1.0; // TM pol
     
     std::vector<Real> R_tot(num_wavelengths, -1.0);
     std::vector<Real> T_tot(num_wavelengths, -1.0);
