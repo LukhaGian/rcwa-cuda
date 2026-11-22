@@ -20,6 +20,7 @@ set_target_properties(rcwa_cu_main PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 # Add additional source files to the executable
 target_sources(rcwa_cu_main PRIVATE
+    src/worker.cu # Worker implementation
     src/rcwa_cuda.cu # Core RCWA algorithm implementation
 )
 
