@@ -46,12 +46,6 @@ void InitWorker(StreamWorker& w, int gpu, const Device& device, const ValueTable
     CHECK(cusolverDnCreate(&w.solver));
     CHECK(cusolverDnSetStream(w.solver, w.stream));
 
-    // Pinned host buffers
-    // for now er/ur don't depend on the wavelength, so fill them just once
-    CHECK(cudaMallocHost(reinterpret_cast<void**>(&w.h_er), w.fft_bytes));
-    CHECK(cudaMallocHost(reinterpret_cast<void**>(&w.h_ur), w.fft_bytes));
-    std::memcpy(w.h_er, device.er.data(), w.fft_bytes);
-    std::memcpy(w.h_ur, device.ur.data(), w.fft_bytes);
     if (debug)
     {
         CHECK(cudaMallocHost(reinterpret_cast<void**>(&w.h_erc), w.convMat_bytes));
@@ -101,28 +95,6 @@ void InitWorker(StreamWorker& w, int gpu, const Device& device, const ValueTable
 }
 
 
-static void CompareLayers(const StreamWorker& w, const Device& device)
-{
-    /*
-    Testing only: copies the GPU-built er/ur back and counts the elements that differ
-    from the host-built device.er/ur. Expected result: 0 mismatches.
-    */
-    const size_t n = w.fft_bytes / sizeof(cuda_Complex_d);
-    std::vector<Complex> er(n);
-    std::vector<Complex> ur(n);
-    CHECK(cudaMemcpyAsync(er.data(), w.d_er, w.fft_bytes, cudaMemcpyDeviceToHost, w.stream));
-    CHECK(cudaMemcpyAsync(ur.data(), w.d_ur, w.fft_bytes, cudaMemcpyDeviceToHost, w.stream));
-    CHECK(cudaStreamSynchronize(w.stream));
-    size_t er_mis = 0;
-    size_t ur_mis = 0;
-    for (size_t k = 0; k < n; ++k)
-    {
-        er_mis += (er[k] != device.er[k]);
-        ur_mis += (ur[k] != device.ur[k]);
-    }
-    std::cout << "BuildLayers check: er mismatches " << er_mis << ", ur mismatches " << ur_mis << " of " << n << '\n';
-}
-
 
 void RunWorker(StreamWorker& w, const Device& device, const Source& source, const RCWAParams& params, std::atomic<int>& next_wavelength)
 {
@@ -143,6 +115,7 @@ void RunWorker(StreamWorker& w, const Device& device, const Source& source, cons
         std::abort();
     }
     // setting thread grid for BuildLayers
+    // 1d flattening of thread blocks for each layer
     const dim3 grid((device.Nx * device.Ny + 255) / 256, device.num_layers); // x: pixels in a layer, y: layer
 
     while (true)
@@ -151,17 +124,11 @@ void RunWorker(StreamWorker& w, const Device& device, const Source& source, cons
         if (i >= num_wavelengths)
             break;
 
-        // WIP: fill h_er/h_ur for lambda0[i] here: safe because the previous wavelength was synchronized
-        //CHECK(cudaMemcpyAsync(w.d_er, w.h_er, w.fft_bytes, cudaMemcpyHostToDevice, w.stream));
-        //CHECK(cudaMemcpyAsync(w.d_ur, w.h_ur, w.fft_bytes, cudaMemcpyHostToDevice, w.stream));
         const cuda_Complex_d* values_i = w.d_values + static_cast<size_t>(i) * w.num_values; // row i, w.d_values points to first element
         // Build the layers
         BuildLayers<<<grid, 256, 0, w.stream>>>(w.d_er_desc, w.d_ur_desc, values_i, w.d_er, w.d_ur,
-                                                device.Nx, device.Ny, device.Lx, device.Ly);
+                                                device.Nx, device.Ny, device.Lx, device.Ly); // use 256 threads per block
         CHECK(cudaGetLastError());
-        if (w.h_erc != nullptr && !w.has_debug)
-            CompareLayers(w, device); // testing only, before the in-place FFT overwrites d_er/d_ur        
-        
         convMat_cu(w.plan, w.d_er, w.d_ur, w.d_erc, w.d_urc, device.Nx, device.Ny, 
                    device.num_layers, params.Nx_harmonics, params.Ny_harmonics, Q, PQ, w.stream);
 
@@ -188,18 +155,16 @@ void DestroyWorker(StreamWorker& w)
 
     CHECK(cudaSetDevice(w.gpu));
     CHECK(cudaStreamSynchronize(w.stream)); // nothing may still be using the buffers
+    CHECK(cudaFree(w.d_values));
+    CHECK(cudaFree(w.d_ur_desc));
+    CHECK(cudaFree(w.d_er_desc));
     CHECK(cudaFree(w.d_urc));
     CHECK(cudaFree(w.d_erc));
     CHECK(cudaFree(w.d_ur));
     CHECK(cudaFree(w.d_er));
-    CHECK(cudaFree(w.d_values));
-    CHECK(cudaFree(w.d_ur_desc));
-    CHECK(cudaFree(w.d_er_desc));
     // cudaFreeHost since we are using pinned memory host side
     CHECK(cudaFreeHost(w.h_urc)); // nullptr is fine
     CHECK(cudaFreeHost(w.h_erc));
-    CHECK(cudaFreeHost(w.h_ur));
-    CHECK(cudaFreeHost(w.h_er));
     // cuSolver
     CHECK(cusolverDnDestroy(w.solver));
     // cuBLAS
@@ -229,8 +194,7 @@ __global__ void BuildLayers(const ShapeDesc* er_desc, const ShapeDesc* ur_desc, 
     const ShapeDesc u = ur_desc[layer];
     er[offset] = values[InsideShape(e, ix, iy, Nx, Ny, Lx, Ly) ? e.value_in : e.value_out];
     ur[offset] = values[InsideShape(u, ix, iy, Nx, Ny, Lx, Ly) ? u.value_in : u.value_out];
-    // launch: dim3 grid((Nx*Ny + 255) / 256, num_layers); // 1d flattening of thread blocks for each layer
-    // BuildLayers<<<grid, 256, 0, w.stream>>>(...) // use 256 threads per block
+
 }
 
 

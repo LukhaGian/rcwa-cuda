@@ -24,15 +24,13 @@ struct Device
     int num_layers{}; // number of layers M
     Real Lx{}; // unit cell dimension along X axis
     Real Ly{}; // unit cell dimension along Y axis
-    std::vector<Complex> er{};  //  TO BE REMOVED
-    std::vector<Complex> ur{}; // TO BE REMOVED
     std::vector<ShapeDesc> er_desc{};  // vector containing the shape descriptions for each layer in er/ur
     std::vector<ShapeDesc> ur_desc{};
     std::vector<Real> t{};   // thickness per layer, size num_layers
 
-    Device(int Nx_, int Ny_, int num_layers_, Real Lx_, Real Ly_, const std::vector<Complex>& er_, 
-        const std::vector<Complex>& ur_, const std::vector<Real>& t_, int Nx_harmonics_, int Ny_harmonics_) 
-        : Nx(Nx_), Ny(Ny_), num_layers(num_layers_), Lx(Lx_), Ly(Ly_), er(er_), ur(ur_), t(t_)
+    Device(int Nx_, int Ny_, int num_layers_, Real Lx_, Real Ly_, const std::vector<ShapeDesc>& er_desc_, 
+        const std::vector<ShapeDesc>& ur_desc_, const std::vector<Real>& t_, int Nx_harmonics_, int Ny_harmonics_) 
+        : Nx(Nx_), Ny(Ny_), num_layers(num_layers_), Lx(Lx_), Ly(Ly_), er_desc(er_desc_), ur_desc(ur_desc_), t(t_)
     {
     }
 };
@@ -82,8 +80,6 @@ struct StreamWorker
     size_t fft_bytes{}; // Nx * Ny * num_layers cuda_Complex_d values
     size_t convMat_bytes{}; // PQ * PQ * num_layers cuda_Complex_d values
     // pinned host buffers
-    cuda_Complex_d* h_er{};
-    cuda_Complex_d* h_ur{};
     cuda_Complex_d* h_erc{}; // testing only: nullptr unless debug flag
     cuda_Complex_d* h_urc{}; // testing only: nullptr unless debug flag
     bool has_debug{}; // testing only: h_erc/h_urc are filled
