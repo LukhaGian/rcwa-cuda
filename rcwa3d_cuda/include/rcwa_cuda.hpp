@@ -12,6 +12,7 @@
 using namespace std::complex_literals; // Enables the '1i' literal
 
 using cuda_Complex_d = cufftDoubleComplex; // cuFFT Z2Z
+static_assert(sizeof(Complex) == sizeof(cuda_Complex_d), "Complex and cuda_Complex_d must have the same size"); // explicit check, safe
 using cuda_Real_d = cufftDoubleReal; // cuFFT Real
 
 // struct that defines the Device properties
@@ -23,10 +24,10 @@ struct Device
     int num_layers{}; // number of layers M
     Real Lx{}; // unit cell dimension along X axis
     Real Ly{}; // unit cell dimension along Y axis
-    // 3D arrays: er[iy][ix][layer] stored as flat vector er[layer * Nx * Ny + iy * Nx + ix] (row-major order)
-    // spatial arrays
-    std::vector<Complex> er{};  //  TO BE SUBSTITUTED
-    std::vector<Complex> ur{};
+    std::vector<Complex> er{};  //  TO BE REMOVED
+    std::vector<Complex> ur{}; // TO BE REMOVED
+    std::vector<ShapeDesc> er_desc{};  // vector containing the shape descriptions for each layer in er/ur
+    std::vector<ShapeDesc> ur_desc{};
     std::vector<Real> t{};   // thickness per layer, size num_layers
 
     Device(int Nx_, int Ny_, int num_layers_, Real Lx_, Real Ly_, const std::vector<Complex>& er_, 
@@ -91,10 +92,16 @@ struct StreamWorker
     cuda_Complex_d* d_ur{};
     cuda_Complex_d* d_erc{};
     cuda_Complex_d* d_urc{};
+    // shape descriptor in device
+    ShapeDesc* d_er_desc{};
+    ShapeDesc* d_ur_desc{};
+    cuda_Complex_d* d_values{}; // whole value table, row i = wavelength i
+    int num_values{}; // no. columns of the table
+    int num_wavelengths{}; // no. rows of the table
 };
 
 // Initialize the worker
-void InitWorker(StreamWorker& w, int gpu, const Device& device, const RCWAParams& params, bool debug);
+void InitWorker(StreamWorker& w, int gpu, const Device& device, const ValueTable& table, const RCWAParams& params, bool debug);
 
 // Run the worker
 void RunWorker(StreamWorker& w, const Device& device, const Source& source, const RCWAParams& params, std::atomic<int>& next_wavelength);

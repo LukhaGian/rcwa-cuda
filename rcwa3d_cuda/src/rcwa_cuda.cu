@@ -1,8 +1,11 @@
 #include "rcwa_cuda.hpp"
+#include <iostream>
+#include <cstdlib>
+#include <initializer_list> // passing a braced list of values to constructors and functions
 #include <cstring> // std::memcpy
 
 
-void InitWorker(StreamWorker& w, int gpu, const Device& device, const RCWAParams& params, bool debug)
+void InitWorker(StreamWorker& w, int gpu, const Device& device, const ValueTable& table, const RCWAParams& params, bool debug)
 {
     /* 
     Initialize the worker: binds the cuFFT plan, cuBLAS and cuSolver handles.
@@ -59,6 +62,65 @@ void InitWorker(StreamWorker& w, int gpu, const Device& device, const RCWAParams
     CHECK(cudaMalloc(reinterpret_cast<void**>(&w.d_ur), w.fft_bytes));
     CHECK(cudaMalloc(reinterpret_cast<void**>(&w.d_erc), w.convMat_bytes));
     CHECK(cudaMalloc(reinterpret_cast<void**>(&w.d_urc), w.convMat_bytes));
+
+    
+    // Check possible issues before uploading: a bad index would read random GPU memory without any error
+    if (static_cast<int>(device.er_desc.size()) != num_layers || static_cast<int>(device.ur_desc.size()) != num_layers)
+    {
+        std::cerr << "InitWorker: need one er_desc and one ur_desc per layer" <<'\n';
+        std::abort();
+    }
+    if (table.values.size() != static_cast<size_t>(table.num_values) * table.num_wavelengths)
+    {
+        std::cerr << "InitWorker: table size is not num_values * num_wavelengths" <<'\n';
+        std::abort();
+    }
+    for (int l = 0; l < num_layers; ++l)
+        for (const ShapeDesc* s : {&device.er_desc[l], &device.ur_desc[l]}) // using pointers
+            if (s->type < SHAPE_UNIFORM || s->type > SHAPE_SQUARE ||
+                s->value_in < 0 || s->value_in >= table.num_values ||
+                s->value_out < 0 || s->value_out >= table.num_values)
+            {
+                std::cerr << "InitWorker: invalid ShapeDesc on layer " << l << '\n';
+                std::abort();
+            }
+
+    // Upload descriptors and value table once (a few KB, pageable is ok)
+    w.num_values = table.num_values; // no., of different materials used in the device
+    w.num_wavelengths = table.num_wavelengths; // total no. of wavelengths
+    const size_t desc_bytes = sizeof(ShapeDesc) * num_layers;
+    const size_t values_bytes = sizeof(cuda_Complex_d) * table.values.size();
+    CHECK(cudaMalloc(reinterpret_cast<void**>(&w.d_er_desc), desc_bytes));
+    CHECK(cudaMalloc(reinterpret_cast<void**>(&w.d_ur_desc), desc_bytes));
+    CHECK(cudaMalloc(reinterpret_cast<void**>(&w.d_values), values_bytes));
+    CHECK(cudaMemcpyAsync(w.d_er_desc, device.er_desc.data(), desc_bytes, cudaMemcpyHostToDevice, w.stream));
+    CHECK(cudaMemcpyAsync(w.d_ur_desc, device.ur_desc.data(), desc_bytes, cudaMemcpyHostToDevice, w.stream));
+    CHECK(cudaMemcpyAsync(w.d_values, table.values.data(), values_bytes, cudaMemcpyHostToDevice, w.stream));
+    CHECK(cudaStreamSynchronize(w.stream)); // the host vectors may change after InitWorker returns --> stream sync
+
+}
+
+
+static void CompareLayers(const StreamWorker& w, const Device& device)
+{
+    /*
+    Testing only: copies the GPU-built er/ur back and counts the elements that differ
+    from the host-built device.er/ur. Expected result: 0 mismatches.
+    */
+    const size_t n = w.fft_bytes / sizeof(cuda_Complex_d);
+    std::vector<Complex> er(n);
+    std::vector<Complex> ur(n);
+    CHECK(cudaMemcpyAsync(er.data(), w.d_er, w.fft_bytes, cudaMemcpyDeviceToHost, w.stream));
+    CHECK(cudaMemcpyAsync(ur.data(), w.d_ur, w.fft_bytes, cudaMemcpyDeviceToHost, w.stream));
+    CHECK(cudaStreamSynchronize(w.stream));
+    size_t er_mis = 0;
+    size_t ur_mis = 0;
+    for (size_t k = 0; k < n; ++k)
+    {
+        er_mis += (er[k] != device.er[k]);
+        ur_mis += (ur[k] != device.ur[k]);
+    }
+    std::cout << "BuildLayers check: er mismatches " << er_mis << ", ur mismatches " << ur_mis << " of " << n << '\n';
 }
 
 
@@ -75,6 +137,14 @@ void RunWorker(StreamWorker& w, const Device& device, const Source& source, cons
     const int Q = 2 * params.Ny_harmonics + 1; // Note: y represents the rows of the matrices
     const int PQ = (2 * params.Nx_harmonics + 1) * Q;
 
+    if (num_wavelengths != w.num_wavelengths)
+    {
+        std::cerr << "RunWorker: value table rows != number of wavelengths\n";
+        std::abort();
+    }
+    // setting thread grid for BuildLayers
+    const dim3 grid((device.Nx * device.Ny + 255) / 256, device.num_layers); // x: pixels in a layer, y: layer
+
     while (true)
     {
         const int i = next_wavelength.fetch_add(1);
@@ -82,8 +152,16 @@ void RunWorker(StreamWorker& w, const Device& device, const Source& source, cons
             break;
 
         // WIP: fill h_er/h_ur for lambda0[i] here: safe because the previous wavelength was synchronized
-        CHECK(cudaMemcpyAsync(w.d_er, w.h_er, w.fft_bytes, cudaMemcpyHostToDevice, w.stream));
-        CHECK(cudaMemcpyAsync(w.d_ur, w.h_ur, w.fft_bytes, cudaMemcpyHostToDevice, w.stream));
+        //CHECK(cudaMemcpyAsync(w.d_er, w.h_er, w.fft_bytes, cudaMemcpyHostToDevice, w.stream));
+        //CHECK(cudaMemcpyAsync(w.d_ur, w.h_ur, w.fft_bytes, cudaMemcpyHostToDevice, w.stream));
+        const cuda_Complex_d* values_i = w.d_values + static_cast<size_t>(i) * w.num_values; // row i, w.d_values points to first element
+        // Build the layers
+        BuildLayers<<<grid, 256, 0, w.stream>>>(w.d_er_desc, w.d_ur_desc, values_i, w.d_er, w.d_ur,
+                                                device.Nx, device.Ny, device.Lx, device.Ly);
+        CHECK(cudaGetLastError());
+        if (w.h_erc != nullptr && !w.has_debug)
+            CompareLayers(w, device); // testing only, before the in-place FFT overwrites d_er/d_ur        
+        
         convMat_cu(w.plan, w.d_er, w.d_ur, w.d_erc, w.d_urc, device.Nx, device.Ny, 
                    device.num_layers, params.Nx_harmonics, params.Ny_harmonics, Q, PQ, w.stream);
 
@@ -114,6 +192,9 @@ void DestroyWorker(StreamWorker& w)
     CHECK(cudaFree(w.d_erc));
     CHECK(cudaFree(w.d_ur));
     CHECK(cudaFree(w.d_er));
+    CHECK(cudaFree(w.d_values));
+    CHECK(cudaFree(w.d_ur_desc));
+    CHECK(cudaFree(w.d_er_desc));
     // cudaFreeHost since we are using pinned memory host side
     CHECK(cudaFreeHost(w.h_urc)); // nullptr is fine
     CHECK(cudaFreeHost(w.h_erc));
