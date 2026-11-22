@@ -104,7 +104,7 @@ void DestroyWorker(StreamWorker& w);
 
 // Build layers
 __global__ void BuildLayers(const ShapeDesc* er_desc, const ShapeDesc* ur_desc, const cuda_Complex_d* values,
-                            cuda_Complex_d* er, cuda_Complex_d* ur, int Nx, int Ny, double Lx, double Ly)
+                            cuda_Complex_d* er, cuda_Complex_d* ur, int Nx, int Ny, double Lx, double Ly);
 
 // Function that performs FFT and normalization on the device
 void convMat_cu(cufftHandle& plan, cuda_Complex_d* d_er_ptr, cuda_Complex_d* d_ur_ptr, cuda_Complex_d* d_erc_ptr,
