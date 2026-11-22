@@ -84,9 +84,6 @@ int main()
     ShapeDesc ur_1{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 0, 0};
     ShapeDesc ur_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 1, 1};
     ShapeDesc ur_3{SHAPE_SQUARE, std::min(Nx, Ny)/4.0, -1.0, -1.0, dx, dy, 1, 4};
-    // Build device descriptors
-    std::vector<ShapeDesc> er_desc{er_0, er_1, er_2, er_3};
-    std::vector<ShapeDesc> ur_desc{ur_0, ur_1, ur_2, ur_3};
 
 
     std::vector<std::vector<Complex>> ur_layers = 
@@ -101,6 +98,10 @@ int main()
     std::vector<Complex> ur = layer::stack(ur_layers);
 
     std::vector<Real> thickness{1.5, 2.0, 1.0, 2.0};
+
+    // Build device descriptors
+    std::vector<ShapeDesc> er_desc{er_0, er_1, er_2, er_3};
+    std::vector<ShapeDesc> ur_desc{ur_0, ur_1, ur_2, ur_3};
 
     // Build the device
     Device device(Nx, Ny, thickness.size(), Lx, Ly, er_desc, ur_desc, thickness, Nx_harmonics, Ny_harmonics);
