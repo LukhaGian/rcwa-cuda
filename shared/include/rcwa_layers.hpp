@@ -15,6 +15,14 @@
 using Real = double;
 using Complex = std::complex<Real>;
 
+// Material values per wavelength, flat: values[i * num_values + v]
+struct ValueTable
+{
+    int num_values{};      // values per wavelength
+    int num_wavelengths{};
+    std::vector<Complex> values{}; // full table of values
+};
+
 enum ShapeType : int {SHAPE_UNIFORM, SHAPE_X, SHAPE_Y, 
                       SHAPE_TRIANGLE, SHAPE_TRIANGLE_SHIFTED, SHAPE_SQUARE};
 
