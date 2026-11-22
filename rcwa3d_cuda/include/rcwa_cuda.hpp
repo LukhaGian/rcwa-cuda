@@ -102,8 +102,13 @@ void RunWorker(StreamWorker& w, const Device& device, const Source& source, cons
 // Destroy the worker
 void DestroyWorker(StreamWorker& w);
 
+// Build layers
+__global__ void BuildLayers(const ShapeDesc* er_desc, const ShapeDesc* ur_desc, const cuda_Complex_d* values,
+                            cuda_Complex_d* er, cuda_Complex_d* ur, int Nx, int Ny, double Lx, double Ly)
+
 // Function that performs FFT and normalization on the device
-void convMat_cu(cufftHandle& plan, cuda_Complex_d* d_er_ptr, cuda_Complex_d* d_ur_ptr, cuda_Complex_d* d_erc_ptr, cuda_Complex_d* d_urc_ptr, int Nx, int Ny, int num_layers, int Nx_harmonics, int Ny_harmonics, int Q, int PQ, cudaStream_t stream);
+void convMat_cu(cufftHandle& plan, cuda_Complex_d* d_er_ptr, cuda_Complex_d* d_ur_ptr, cuda_Complex_d* d_erc_ptr,
+                cuda_Complex_d* d_urc_ptr, int Nx, int Ny, int num_layers, int Nx_harmonics, int Ny_harmonics, int Q, int PQ, cudaStream_t stream);
 
 // Kernel that defines the normalization for the FFT data and swaps opposite FFT quadrants for each layer
 __global__ void NormalizeQuadShiftFFT(cuda_Complex_d* data, int Nx, int Ny, int num_layers);
