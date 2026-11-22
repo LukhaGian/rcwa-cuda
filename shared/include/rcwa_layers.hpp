@@ -1,13 +1,12 @@
+#pragma once
+
 #ifdef __CUDACC__ // macro defined by nvcc during compilation of cuda code
 #define RCWA_HD __host__ __device__
 #else // standard cpp compiler
 #define RCWA_HD // empty
 #endif
 
-#pragma once
-
-//#include <cuda_runtime.h>
-//#include <cstdio> // for default handling case in InsideShape
+#include <cstdlib> // for std::abort()
 #include <vector>
 #include <complex>
 #include <cmath>
@@ -67,10 +66,12 @@ RCWA_HD inline bool InsideShape(const ShapeDesc& s, int idx, int idy, int Nx, in
             // s.p0 = half_size = std::min(Nx, Ny) / 4.0;
             return ((idy >= ((Ny/2.0) - s.p0)) && (idy < ((Ny/2.0) + s.p0)) && (idx >= ((Nx/2.0) - s.p0)) && (idx < ((Nx/2.0) + s.p0)));
         default:
+            #ifdef __CUDA_ARCH__
+                __trap();
+            #else
+                std::abort();
+            #endif
             return false;
-            // WIP: calling __trap() (device only funct) in __host__ __device__ function is not allowed
-            //printf("CUDA Fatal Error: Invalid ShapeType (%d).\n", static_cast<int>(s.type));
-            //__trap(); // aborts kernel exec
     }
 }
 
