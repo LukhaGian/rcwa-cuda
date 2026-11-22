@@ -1,4 +1,5 @@
 #include "rcwa_cuda.hpp"
+#include "worker.hpp"
 #include <cuda_runtime.h>
 #include <iostream>
 #include <thread> // for std::thread
