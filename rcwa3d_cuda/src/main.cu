@@ -7,77 +7,6 @@
 
 int main()
 {
-    // spatial grid for the layers
-    int Nx = 2048; // make sure it's always even
-    int Ny = 2048;
-
-    int Nx_harmonics = 1;
-    int Ny_harmonics = 1;
-
-    int P = 2 * Nx_harmonics + 1; // total number of harmonics along x axis
-    int Q = 2 * Ny_harmonics + 1; // total number of harmonics along y axis
-    int PQ = P * Q;
-
-    Real Lx = 1.0; // unit cell dimension along x axis
-    Real Ly = 1.0; // unit cell dimension along y axis
-
-    Real dx = Lx/Nx;
-    Real dy = Ly/Ny;
-
-    std::vector<Complex> values{Complex(1.0, 0.0), Complex(2.0, 0.0), Complex(5.0, 0.0), Complex(6.0, 0.0), Complex(8.0, 0.0)};
-
-    // Build the device layers
-    ShapeDesc er_0{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
-    ShapeDesc er_1{SHAPE_X, -1.0, -1.0, -1.0, dx, dy, 1, 3};
-    ShapeDesc er_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 0, 0};
-    ShapeDesc er_3{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
-   
-    std::vector<std::vector<Complex>> er_layers = 
-    {
-            layer::build(er_0, Nx, Ny, Lx, Ly, values),
-            layer::build(er_1, Nx, Ny, Lx, Ly, values),
-            layer::build(er_2, Nx, Ny, Lx, Ly, values),
-            layer::build(er_3, Nx, Ny, Lx, Ly, values)
-            
-            //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
-            //legacy_layer::x_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
-            //legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0))
-            
-    };
-    ShapeDesc ur_0{SHAPE_TRIANGLE_SHIFTED, 0.7, 0.35, 0.35, dx, dy, 0, 2};
-    ShapeDesc ur_1{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 0, 0};
-    ShapeDesc ur_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 1, 1};
-    ShapeDesc ur_3{SHAPE_SQUARE, std::min(Nx, Ny)/4.0, -1.0, -1.0, dx, dy, 1, 4};
-
-
-    std::vector<std::vector<Complex>> ur_layers = 
-    {
-            layer::build(ur_0, Nx, Ny, Lx, Ly, values),
-            layer::build(ur_1, Nx, Ny, Lx, Ly, values),
-            layer::build(ur_2, Nx, Ny, Lx, Ly, values),
-            layer::build(ur_3, Nx, Ny, Lx, Ly, values)
-            
-            //legacy_layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.35, 0.35, Complex(1.0, 0.0), Complex(5.0, 0.0)),
-            //legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            //legacy_layer::uniform(Nx, Ny, Complex(2.0, 0.0)),
-            //legacy_layer::square_pattern(Nx, Ny, Complex(2.0, 0.0), Complex(8.0, 0.0))
-            
-    };
-    std::vector<Complex> er = layer::stack(er_layers);
-    std::vector<Complex> ur = layer::stack(ur_layers);
-
-    std::vector<Real> thickness{1.5, 2.0, 1.0, 2.0};
-
-    // Build the device --> for now materials are not wavelength dependent
-    Device device(Nx, Ny, thickness.size(), Lx, Ly, er, ur, thickness, Nx_harmonics, Ny_harmonics);
-
-    // Build reflection and transmission regions --> for now the materials are non wavelength dependent, extension to wavelength dependent materials is possible
-    Complex er_ref(2.0, 0.0);
-    Complex ur_ref(1.0, 0.0);
-    Complex er_trn(9.0, 0.0);
-    Complex ur_trn(1.0, 0.0);
-    RCWAParams params(Nx_harmonics, Ny_harmonics, er_ref, ur_ref, er_trn, ur_trn);
 
     // Build all the sources that we will simulate
     int num_wavelengths = 100;  // # of sources to simulate
@@ -114,6 +43,90 @@ int main()
 
 
 
+    // spatial grid for the layers
+    int Nx = 2048; // make sure it's always even
+    int Ny = 2048;
+
+    int Nx_harmonics = 1;
+    int Ny_harmonics = 1;
+
+    int P = 2 * Nx_harmonics + 1; // total number of harmonics along x axis
+    int Q = 2 * Ny_harmonics + 1; // total number of harmonics along y axis
+    int PQ = P * Q;
+
+    Real Lx = 1.0; // unit cell dimension along x axis
+    Real Ly = 1.0; // unit cell dimension along y axis
+
+    Real dx = Lx/Nx;
+    Real dy = Ly/Ny;
+
+    std::vector<Complex> values{Complex(1.0, 0.0), Complex(2.0, 0.0), Complex(5.0, 0.0), Complex(6.0, 0.0), Complex(8.0, 0.0)};
+    ValueTable table{static_cast<int>(values.size()), num_wavelengths, {}};
+    table.values.reserve(values.size() * num_wavelengths);
+    for (int i = 0; i < num_wavelengths; ++i) // same row for every wavelength, for now
+        table.values.insert(table.values.end(), values.begin(), values.end());  
+
+    // Build the device layers
+    ShapeDesc er_0{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
+    ShapeDesc er_1{SHAPE_X, -1.0, -1.0, -1.0, dx, dy, 1, 3};
+    ShapeDesc er_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 0, 0};
+    ShapeDesc er_3{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
+   
+    std::vector<std::vector<Complex>> er_layers = 
+    {
+            layer::build(er_0, Nx, Ny, Lx, Ly, table.values),
+            layer::build(er_1, Nx, Ny, Lx, Ly, table.values),
+            layer::build(er_2, Nx, Ny, Lx, Ly, table.values),
+            layer::build(er_3, Nx, Ny, Lx, Ly, table.values)
+            
+            //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
+            //legacy_layer::x_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0)),
+            //legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
+            //legacy_layer::triangle_pattern(Nx, Ny, Lx, Ly, Complex(2.0, 0.0), Complex(6.0, 0.0))
+            
+    };
+    ShapeDesc ur_0{SHAPE_TRIANGLE_SHIFTED, 0.7, 0.35, 0.35, dx, dy, 0, 2};
+    ShapeDesc ur_1{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 0, 0};
+    ShapeDesc ur_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 1, 1};
+    ShapeDesc ur_3{SHAPE_SQUARE, std::min(Nx, Ny)/4.0, -1.0, -1.0, dx, dy, 1, 4};
+
+
+    std::vector<std::vector<Complex>> ur_layers = 
+    {
+            layer::build(ur_0, Nx, Ny, Lx, Ly, table.values),
+            layer::build(ur_1, Nx, Ny, Lx, Ly, table.values),
+            layer::build(ur_2, Nx, Ny, Lx, Ly, table.values),
+            layer::build(ur_3, Nx, Ny, Lx, Ly, table.values)
+            
+            //legacy_layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.35, 0.35, Complex(1.0, 0.0), Complex(5.0, 0.0)),
+            //legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
+            //legacy_layer::uniform(Nx, Ny, Complex(2.0, 0.0)),
+            //legacy_layer::square_pattern(Nx, Ny, Complex(2.0, 0.0), Complex(8.0, 0.0))
+            
+    };
+    std::vector<Complex> er = layer::stack(er_layers);
+    std::vector<Complex> ur = layer::stack(ur_layers);
+
+    std::vector<Real> thickness{1.5, 2.0, 1.0, 2.0};
+
+    // Build the device --> for now materials are not wavelength dependent
+    Device device(Nx, Ny, thickness.size(), Lx, Ly, er, ur, thickness, Nx_harmonics, Ny_harmonics);
+
+    // Build device descriptors
+    device.er_desc = {er_0, er_1, er_2, er_3};
+    device.ur_desc = {ur_0, ur_1, ur_2, ur_3};
+
+
+    // Build reflection and transmission regions --> for now the materials are non wavelength dependent, extension to wavelength dependent materials is possible
+    Complex er_ref(2.0, 0.0);
+    Complex ur_ref(1.0, 0.0);
+    Complex er_trn(9.0, 0.0);
+    Complex ur_trn(1.0, 0.0);
+    RCWAParams params(Nx_harmonics, Ny_harmonics, er_ref, ur_ref, er_trn, ur_trn);
+
+  
+
+
     // CUDA
 
     int num_gpus = 0; // init variable
@@ -134,7 +147,7 @@ int main()
     std::vector<StreamWorker> workers(num_workers);
     // Initialize the workers
     for (int i = 0; i < num_workers; ++i)
-        InitWorker(workers[i], i % num_gpus, device, params, debug && i == 0); // active debug params only for 0th worker 
+        InitWorker(workers[i], i % num_gpus, device, table, params, debug && i == 0); // active debug params only for 0th worker 
 
     // timing
     const auto wall_start = std::chrono::steady_clock::now();
