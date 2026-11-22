@@ -1,4 +1,4 @@
-#include "rcwa_cuda.hpp"
+#include "worker.hpp"
 #include <iostream>
 #include <cstdlib>
 #include <initializer_list> // passing a braced list of values to constructors and functions
