@@ -58,10 +58,10 @@ int main()
             layer::build(ur_2, Nx, Ny, Lx, Ly, values),
             layer::build(ur_3, Nx, Ny, Lx, Ly, values)
             
-            legacy_layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.35, 0.35, Complex(1.0, 0.0), Complex(5.0, 0.0)),
-            legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
-            legacy_layer::uniform(Nx, Ny, Complex(2.0, 0.0)),
-            legacy_layer::square_pattern(Nx, Ny, Complex(2.0, 0.0), Complex(8.0, 0.0))
+            //legacy_layer::triangle_pattern_shifted(Nx, Ny, Lx, Ly, 0.35, 0.35, Complex(1.0, 0.0), Complex(5.0, 0.0)),
+            //legacy_layer::uniform(Nx, Ny, Complex(1.0, 0.0)),
+            //legacy_layer::uniform(Nx, Ny, Complex(2.0, 0.0)),
+            //legacy_layer::square_pattern(Nx, Ny, Complex(2.0, 0.0), Complex(8.0, 0.0))
             
     };
     std::vector<Complex> er = layer::stack(er_layers);
