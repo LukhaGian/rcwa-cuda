@@ -67,35 +67,16 @@ int main()
     for (int i = 0; i < num_wavelengths; ++i) // same row for every wavelength, for now
         table.values.insert(table.values.end(), values.begin(), values.end());  
 
-    // Build the device layers
+    // Define the device layers
     ShapeDesc er_0{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
     ShapeDesc er_1{SHAPE_X, -1.0, -1.0, -1.0, dx, dy, 1, 3};
     ShapeDesc er_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 0, 0};
     ShapeDesc er_3{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
    
-    std::vector<std::vector<Complex>> er_layers = 
-    {
-            layer::build(er_0, Nx, Ny, Lx, Ly, table.values),
-            layer::build(er_1, Nx, Ny, Lx, Ly, table.values),
-            layer::build(er_2, Nx, Ny, Lx, Ly, table.values),
-            layer::build(er_3, Nx, Ny, Lx, Ly, table.values)
-    };
     ShapeDesc ur_0{SHAPE_TRIANGLE_SHIFTED, 0.7, 0.35, 0.35, dx, dy, 0, 2};
     ShapeDesc ur_1{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 0, 0};
     ShapeDesc ur_2{SHAPE_UNIFORM, -1.0, -1.0, -1.0, dx, dy, 1, 1};
     ShapeDesc ur_3{SHAPE_SQUARE, std::min(Nx, Ny)/4.0, -1.0, -1.0, dx, dy, 1, 4};
-
-
-    std::vector<std::vector<Complex>> ur_layers = 
-    {
-            layer::build(ur_0, Nx, Ny, Lx, Ly, table.values),
-            layer::build(ur_1, Nx, Ny, Lx, Ly, table.values),
-            layer::build(ur_2, Nx, Ny, Lx, Ly, table.values),
-            layer::build(ur_3, Nx, Ny, Lx, Ly, table.values) 
-    };
-
-    std::vector<Complex> er = layer::stack(er_layers);
-    std::vector<Complex> ur = layer::stack(ur_layers);
 
     std::vector<Real> thickness{1.5, 2.0, 1.0, 2.0};
 
