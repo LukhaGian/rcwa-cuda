@@ -51,8 +51,8 @@ struct StreamWorker
     ShapeDesc* d_er_desc{};
     ShapeDesc* d_ur_desc{};
     cuda_Complex_d* d_values{}; // whole value table, row i = wavelength i
-    int num_values{}; // no. columns of the table ??????
-    int num_wavelengths{}; // no. rows of the table ?????????
+    int num_values{}; // no. columns of the loaded table (current when calling RunWorker, <= sizes.max_values), row stride of d_val
+    int num_wavelengths{}; // no. rows of the loaded table (current when calling RunWorker, <= sizes.max_wavelengths))
 };
 
 // Sizes of a problem, to initialize workers that can solve it
