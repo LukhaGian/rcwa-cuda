@@ -118,8 +118,9 @@ int main()
     // create a vector of workers
     std::vector<StreamWorker> workers(num_workers);
     // Initialize the workers
+    const WorkerSizes sizes = MakeSizes(device, params, table);
     for (int i = 0; i < num_workers; ++i)
-        InitWorker(workers[i], i % num_gpus, device, table, params, debug && i == 0); // active debug params only for 0th worker 
+        InitWorker(workers[i], i % num_gpus, sizes, debug && i == 0); // active debug params only for 0th worker 
 
     // timing
     const auto wall_start = std::chrono::steady_clock::now();
@@ -128,7 +129,8 @@ int main()
     threads.reserve(num_workers); // reserve space for all workers
     // Run each worker
     for (int k = 0; k < num_workers; ++k)
-        threads.emplace_back(RunWorker, std::ref(workers[k]), std::cref(device), std::cref(source), std::cref(params), std::ref(next_wavelength));
+        threads.emplace_back(RunWorker, std::ref(workers[k]), std::cref(device), std::cref(table), 
+                             std::cref(source), std::cref(params), std::ref(next_wavelength));
     for (auto& t : threads)
         t.join(); // it locks the calling thread until the worker thread finishes execution
     const double wall_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - wall_start).count();
