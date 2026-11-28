@@ -15,7 +15,7 @@ WorkerSizes MakeSizes(const Device& device, const RCWAParams& params, const Valu
 }
 
 
-static void ProblemError(const char* message) // static: internal linkage, orivate to worker.cu
+static void ProblemError(const char* message) // static: internal linkage, private to worker.cu
 {
     /*
     Function that reports an invalid problem and stops the program.
@@ -43,13 +43,13 @@ static void CheckProblem(const WorkerSizes& sz, const Device& device, const Valu
     // device -- worker sizes length for er_desc and ur_desc (one description for each layer in [0, num_layers-1] for er and ur)
     if (static_cast<int>(device.er_desc.size()) != sz.num_layers || static_cast<int>(device.ur_desc.size()) != sz.num_layers)
         ProblemError("need one er_desc and one ur_desc per layer");
-    // check table sizes --> can be removed, it is not related to worker sizes
+    // check table sizes
     if (table.values.size() != static_cast<size_t>(table.num_values) * table.num_wavelengths)
         ProblemError("table size is not num_values * num_wavelengths");
     // table -- worker sizes capacity
     if (table.num_values > sz.max_values || table.num_wavelengths > sz.max_wavelengths)
         ProblemError("value table exceeds the worker's capacity");
-    // source -- table no. wavelengths --> not related to worker sizes
+    // source -- table no. wavelengths
     if (static_cast<int>(source.lambda0.size()) != table.num_wavelengths)
         ProblemError("value table rows != number of wavelengths");
     // layer by layer check for shape descriptors for er and ur
@@ -143,7 +143,7 @@ void RunWorker(StreamWorker& w, const Device& device, const ValueTable& table,
     CheckProblem(w.sizes, device, table, source, params); // check before loading that sizes match between the worker and current problem
     // Load the problem: a few KB, pageable is ok
     const size_t desc_bytes = sizeof(ShapeDesc) * w.sizes.num_layers;
-    const size_t values_bytes = sizeof(Complex) * static_cast<size_t>(w.sizes.max_values) * w.sizes.max_wavelengths;
+    const size_t values_bytes = sizeof(Complex) * table.values.size(); // upload the current table, not the max capacity
     CHECK(cudaMemcpyAsync(w.d_er_desc, device.er_desc.data(), desc_bytes, cudaMemcpyHostToDevice, w.stream));
     CHECK(cudaMemcpyAsync(w.d_ur_desc, device.ur_desc.data(), desc_bytes, cudaMemcpyHostToDevice, w.stream));
     CHECK(cudaMemcpyAsync(w.d_values, table.values.data(), values_bytes, cudaMemcpyHostToDevice, w.stream));
