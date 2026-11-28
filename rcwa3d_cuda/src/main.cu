@@ -73,6 +73,9 @@ int main()
     // Modify the table for that specific wavelength
     //table.values[table.num_values * debug_target + 1] = Complex(4.0, 0.0);
 
+    if (debug && (debug_target < 0 || debug_target >= num_wavelengths))
+        std::cerr << "warning: debug_target outside the sweep, nothing will be printed" << '\n';
+
     // Define the device layers
     ShapeDesc er_0{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
     ShapeDesc er_1{SHAPE_X, -1.0, -1.0, -1.0, dx, dy, 1, 3};
@@ -161,7 +164,7 @@ int main()
         {
             std::cout << "debug: wavelength " << w.debug_wavelength << " (lambda0 = " << source.lambda0[w.debug_wavelength]
                       << ") solved on GPU " << w.gpu << '\n';
-            // Convolution results for 0th worker
+            // Convolution results from the worker that solved debug_target
             const auto* erc = reinterpret_cast<const Complex*>(w.h_erc); // raw pointer
             const auto* urc = reinterpret_cast<const Complex*>(w.h_urc);
             int check_layer = device.num_layers;
