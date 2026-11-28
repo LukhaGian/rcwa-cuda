@@ -131,7 +131,7 @@ void InitWorker(StreamWorker& w, int gpu, const WorkerSizes& sizes, bool debug)
 
 
 void RunWorker(StreamWorker& w, const Device& device, const ValueTable& table,
-               const Source& source, const RCWAParams& params, std::atomic<int>& next_wavelength)
+               const Source& source, const RCWAParams& params, std::atomic<int>& next_wavelength, int debug_target)
 {
     /*
     Worker checks and uploads the problem (descriptors and value table), then pulls wavelength
@@ -152,8 +152,7 @@ void RunWorker(StreamWorker& w, const Device& device, const ValueTable& table,
     w.num_values = table.num_values; // get the number of values of the loaded table, potentially smaller than the preallocated w.sizes.max_values
     w.num_wavelengths = table.num_wavelengths;
     w.num_solved = 0;
-    w.has_debug = false; // debug output always belongs to last run
-
+    w.debug_wavelength = -1; // debug output always belongs to the last run
     const int Nx = w.sizes.Nx;
     const int Ny = w.sizes.Ny;
     const int Q = 2 * w.sizes.Ny_harmonics + 1; // Note: y represents the rows of the matrices
@@ -177,11 +176,11 @@ void RunWorker(StreamWorker& w, const Device& device, const ValueTable& table,
 
         // WIP: wave vectors, gap medium, layer S-matrices, R/T for wavelength i
 
-        if (w.h_erc != nullptr && !w.has_debug)
+        if (w.h_erc != nullptr && i == debug_target)
         {
             CHECK(cudaMemcpyAsync(w.h_erc, w.d_erc, w.convMat_bytes, cudaMemcpyDeviceToHost, w.stream));
             CHECK(cudaMemcpyAsync(w.h_urc, w.d_urc, w.convMat_bytes, cudaMemcpyDeviceToHost, w.stream));
-            w.has_debug = true;
+            w.debug_wavelength = i;
         }
         CHECK(cudaStreamSynchronize(w.stream)); // wavelength i is complete
         ++w.num_solved;

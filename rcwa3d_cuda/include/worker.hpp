@@ -41,7 +41,7 @@ struct StreamWorker
     // pinned host buffers
     cuda_Complex_d* h_erc{}; // testing only: nullptr unless debug flag
     cuda_Complex_d* h_urc{}; // testing only: nullptr unless debug flag
-    bool has_debug{}; // testing only: h_erc/h_urc are filled
+    int debug_wavelength{-1}; // testing only: index of the wavelength stored in h_erc/h_urc, -1 = none
     // device work buffers
     cuda_Complex_d* d_er{};
     cuda_Complex_d* d_ur{};
@@ -62,7 +62,7 @@ WorkerSizes MakeSizes(const Device& device, const RCWAParams& params, const Valu
 void InitWorker(StreamWorker& w, int gpu, const WorkerSizes& sizes, bool debug);
 
 // Run the worker: load the problem into the worker, then solve wavelengths from the shared counter
-void RunWorker(StreamWorker& w, const Device& device, const ValueTable& table, const Source& source, const RCWAParams& params, std::atomic<int>& next_wavelength);
+void RunWorker(StreamWorker& w, const Device& device, const ValueTable& table, const Source& source, const RCWAParams& params, std::atomic<int>& next_wavelength, int debug_target);
 
 // Destroy the worker
 void DestroyWorker(StreamWorker& w);
