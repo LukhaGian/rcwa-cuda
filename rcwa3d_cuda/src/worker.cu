@@ -152,7 +152,7 @@ void RunWorker(StreamWorker& w, const Device& device, const ValueTable& table,
     w.num_values = table.num_values; // get the number of values of the loaded table, potentially smaller than the preallocated w.sizes.max_values
     w.num_wavelengths = table.num_wavelengths;
     w.num_solved = 0;
-    w.debug_wavelength = -1; // debug output always belongs to the last run
+    w.debug_wavelength = -1; // no wavelength saved yet in this run
     const int Nx = w.sizes.Nx;
     const int Ny = w.sizes.Ny;
     const int Q = 2 * w.sizes.Ny_harmonics + 1; // Note: y represents the rows of the matrices
