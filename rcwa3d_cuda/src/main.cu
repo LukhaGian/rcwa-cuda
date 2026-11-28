@@ -67,6 +67,12 @@ int main()
     for (int i = 0; i < num_wavelengths; ++i) // same row for every wavelength, for now
         table.values.insert(table.values.end(), values.begin(), values.end());  
 
+    // Debugging for a specific wavelength
+    bool debug = true;
+    const int debug_target = 5; // index of wavelength whose erc/urc we print
+    // Modify the table for that specific wavelength
+    //table.values[table.num_values * debug_target + 1] = Complex(4.0, 0.0);
+
     // Define the device layers
     ShapeDesc er_0{SHAPE_TRIANGLE, 0.7, -1.0, -1.0, dx, dy, 1, 3};
     ShapeDesc er_1{SHAPE_X, -1.0, -1.0, -1.0, dx, dy, 1, 3};
@@ -110,7 +116,6 @@ int main()
         CHECK(cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync)); // waiting threads sleep instead of spinning
     }
 
-    bool debug = true;
     std::atomic<int> next_wavelength{0};
 
 
@@ -120,7 +125,7 @@ int main()
     // Initialize the workers
     const WorkerSizes sizes = MakeSizes(device, params, table);
     for (int i = 0; i < num_workers; ++i)
-        InitWorker(workers[i], i % num_gpus, sizes, debug && i == 0); // active debug params only for 0th worker 
+        InitWorker(workers[i], i % num_gpus, sizes, debug); 
 
     // timing
     const auto wall_start = std::chrono::steady_clock::now();
@@ -130,7 +135,7 @@ int main()
     // Run each worker
     for (int k = 0; k < num_workers; ++k)
         threads.emplace_back(RunWorker, std::ref(workers[k]), std::cref(device), std::cref(table), 
-                             std::cref(source), std::cref(params), std::ref(next_wavelength));
+                             std::cref(source), std::cref(params), std::ref(next_wavelength), debug_target);
     for (auto& t : threads)
         t.join(); // it locks the calling thread until the worker thread finishes execution
     const double wall_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - wall_start).count();
@@ -149,23 +154,28 @@ int main()
     for (int i = 0; i < num_workers; ++i)
         std::cout << "worker no. " << i << ", num_solved: " << workers[i].num_solved << '\n';
 
-    // convMat, Toeplitz, multiple workers -> only 0th worker has debug enabled
-    if (workers[0].has_debug)
+    // convMat, Toeplitz, multiple workers
+    for (const auto& w : workers)
     {
-        // Convolution results for 0th worker
-        const auto* erc = reinterpret_cast<const Complex*>(workers[0].h_erc); // raw pointer
-        const auto* urc = reinterpret_cast<const Complex*>(workers[0].h_urc);
-        int check_layer = device.num_layers;
-        size_t lower_bound = (check_layer-1) * static_cast<size_t>(PQ) * PQ;
-        size_t upper_bound = (check_layer) * static_cast<size_t>(PQ) * PQ;
-        const size_t convmat_elements = static_cast<size_t>(PQ) * PQ * device.num_layers;
-        std::cout << "Size of erc " << convmat_elements << '\n';
-        for (size_t i = lower_bound; i < upper_bound; ++i) 
-            std::cout << erc[i] << '\n';
-        std::cout << "----------------------------------------" << '\n';
-        std::cout << "Size of urc " << convmat_elements << '\n'; 
-        for (size_t i = lower_bound; i < upper_bound; ++i) 
-            std::cout << urc[i] << '\n';
+        if (w.debug_wavelength == debug_target)
+        {
+            std::cout << "debug: wavelength " << w.debug_wavelength << " (lambda0 = " << source.lambda0[w.debug_wavelength]
+                      << ") solved on GPU " << w.gpu << '\n';
+            // Convolution results for 0th worker
+            const auto* erc = reinterpret_cast<const Complex*>(w.h_erc); // raw pointer
+            const auto* urc = reinterpret_cast<const Complex*>(w.h_urc);
+            int check_layer = device.num_layers;
+            size_t lower_bound = (check_layer-1) * static_cast<size_t>(PQ) * PQ;
+            size_t upper_bound = (check_layer) * static_cast<size_t>(PQ) * PQ;
+            const size_t convmat_elements = static_cast<size_t>(PQ) * PQ * device.num_layers;
+            std::cout << "Size of erc " << convmat_elements << '\n';
+            for (size_t i = lower_bound; i < upper_bound; ++i) 
+                std::cout << erc[i] << '\n';
+            std::cout << "----------------------------------------" << '\n';
+            std::cout << "Size of urc " << convmat_elements << '\n'; 
+            for (size_t i = lower_bound; i < upper_bound; ++i) 
+                std::cout << urc[i] << '\n';
+        }
     }
 
     std::cout << "wall_s: " << wall_s << '\n';
